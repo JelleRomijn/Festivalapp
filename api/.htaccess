@@ -1,0 +1,17 @@
+# CORS-headers voor Next.js frontend
+<IfModule mod_headers.c>
+    Header always set Access-Control-Allow-Origin "*"
+    Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+    Header always set Access-Control-Allow-Headers "Content-Type, Accept"
+    Header always set Content-Type "application/json; charset=UTF-8"
+</IfModule>
+
+# Behandel OPTIONS preflight requests
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_METHOD} OPTIONS
+    RewriteRule .* - [R=200,L]
+</IfModule>
+
+# Verberg .php extensie (optioneel voor nettere URLs)
+Options -Indexes
