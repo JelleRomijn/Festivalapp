@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/config/cors.php';
 require_once __DIR__ . '/config/database.php';
 
 header('Content-Type: application/json; charset=UTF-8');
@@ -30,7 +31,10 @@ try {
             s.day,
             TIME_FORMAT(s.start_time, '%H:%i') AS start,
             TIME_FORMAT(s.end_time,   '%H:%i') AS end,
-            a.genre
+            a.genre,
+            a.bio_nl,
+            a.bio_en,
+            a.youtube_url
         FROM schedule s
         INNER JOIN artists   a ON a.id = s.artist_id
         INNER JOIN locations l ON l.id = s.stage_id

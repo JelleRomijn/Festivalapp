@@ -185,6 +185,7 @@ function formatDistance(meters) {
 }
 
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
+const API_URL   = process.env.NEXT_PUBLIC_API_URL;
 
 export default function MapPage() {
   const { language } = useApp();
@@ -195,6 +196,36 @@ export default function MapPage() {
   const [selectedStage, setSelectedStage] = useState(null);
   const [selectedArtist, setSelectedArtist] = useState(null);
   const [mapExpanded, setMapExpanded] = useState(false);
+  const [artists, setArtists] = useState(ARTISTS);
+
+  useEffect(() => {
+    if (!API_URL) return;
+    Promise.all([
+      fetch(`${API_URL}/schedule.php`).then(r => r.json()),
+      fetch(`${API_URL}/locations.php?type=stage`).then(r => r.json()),
+    ])
+      .then(([scheduleData, stageData]) => {
+        const apiArtists = scheduleData.map(slot => {
+          const stage = stageData.find(s => s.id === slot.stage_id);
+          const stageName = stage ? (stage.name?.nl ?? stage.name_nl ?? '') : '';
+          const ytId = slot.youtube_url
+            ? slot.youtube_url.replace('https://www.youtube.com/embed/', '')
+            : null;
+          return {
+            name:      slot.name,
+            genre:     slot.genre,
+            descNl:    slot.bio_nl  || '',
+            descEn:    slot.bio_en  || '',
+            youtubeId: ytId,
+            day:       slot.day,
+            time:      `${slot.start}–${slot.end}`,
+            stage:     stageName,
+          };
+        });
+        setArtists(apiArtists);
+      })
+      .catch(() => {});
+  }, []);
 
   const gmapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${FESTIVAL_LAT},${FESTIVAL_LNG}`;
   const appleMapsUrl = `https://maps.apple.com/?ll=${FESTIVAL_LAT},${FESTIVAL_LNG}&q=HartjeU+Festival`;
@@ -231,7 +262,7 @@ export default function MapPage() {
     t.gpsBtn;
 
   const stageArtists = selectedStage
-    ? ARTISTS.filter(a => a.stage === selectedStage.name)
+    ? artists.filter(a => a.stage === selectedStage.name)
     : [];
 
   function closeSheet() {

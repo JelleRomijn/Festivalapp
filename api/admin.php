@@ -1,13 +1,8 @@
 <?php
+require_once __DIR__ . '/config/cors.php';
 require_once __DIR__ . '/config/database.php';
 
 header('Content-Type: application/json; charset=UTF-8');
-
-// Verwerk OPTIONS preflight handmatig (voor PUT/DELETE)
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit;
-}
 
 $method   = $_SERVER['REQUEST_METHOD'];
 $resource = $_GET['resource'] ?? '';

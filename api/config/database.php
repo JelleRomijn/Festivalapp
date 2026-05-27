@@ -1,9 +1,9 @@
 <?php
-// Databaseconfiguratie — pas aan voor Hostinger
-define('DB_HOST', 'mysql_db');       // Docker: service naam; Hostinger: 'localhost'
-define('DB_NAME', 'hartjeu_festival');
-define('DB_USER', 'root');          // Hostinger: jouw DB-gebruikersnaam
-define('DB_PASS', 'root');          // Docker: 'root'; Hostinger: jouw wachtwoord
+// Databaseconfiguratie — Hostinger productie
+define('DB_HOST', 'localhost');
+define('DB_NAME', 'u448324313_festival');
+define('DB_USER', 'u448324313_festival');
+define('DB_PASS', 'i9E#h#v*bjZ:');
 define('DB_CHARSET', 'utf8mb4');
 
 function getDb(): PDO {
