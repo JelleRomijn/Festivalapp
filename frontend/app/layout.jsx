@@ -10,7 +10,6 @@ export const metadata = {
     template: '%s — HartjeU Festival',
   },
   description: 'De officiële app van het HartjeU festival in Utrecht — 15 & 16 augustus 2026',
-  manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
@@ -50,8 +49,8 @@ export default function RootLayout({ children }) {
           {/* Vaste header met logo en controls */}
           <header className="app-header">
             <div className="app-header__logo">
-              <img src="/logowhite.png" alt="HartjeU Festival" className="logo-light" />
-              <img src="/logoblack.png" alt="HartjeU Festival" className="logo-dark" />
+              <img src={`${process.env.NEXT_PUBLIC_BASE_PATH}/logoWhite.png`} alt="HartjeU Festival" className="logo-light" />
+              <img src={`${process.env.NEXT_PUBLIC_BASE_PATH}/logoBlack.png`} alt="HartjeU Festival" className="logo-dark" />
             </div>
             <div className="app-header__controls">
               <ThemeToggle />

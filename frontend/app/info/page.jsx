@@ -77,10 +77,10 @@ export default function InfoPage() {
     }
 
     setLoading(true);
-    fetch(`${API_URL}/info.php?lang=${language}`)
+    fetch(`${API_URL}/info.php?lang=${language}`, { signal: AbortSignal.timeout(8000) })
       .then(r => r.json())
       .then(data => setSections(data))
-      .catch(() => setSections(PLACEHOLDER[language])) // Fallback bij offline
+      .catch(() => setSections(PLACEHOLDER[language]))
       .finally(() => setLoading(false));
   }, [language]);
 

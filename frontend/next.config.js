@@ -1,10 +1,16 @@
 const withPWA = require('@ducanh2912/next-pwa').default;
 
+const BASE_PATH = process.env.NODE_ENV === 'production' ? '/Festival-app' : '';
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  basePath: process.env.NODE_ENV === 'production' ? '/Festival-app' : '',
-  // Voor statische export op shared hosting: uncomment onderstaande regel
-  // output: 'export',
+  basePath: BASE_PATH,
+  env: {
+    NEXT_PUBLIC_BASE_PATH: BASE_PATH,
+  },
+  images: {
+    unoptimized: true,
+  },
 };
 
 module.exports = withPWA({
