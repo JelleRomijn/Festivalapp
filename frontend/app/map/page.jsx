@@ -1,7 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import Image from 'next/image';
+import { useState, useEffect, useRef } from 'react';
 import { useApp } from '@/components/AppContext';
 
 const FESTIVAL_LAT = 52.067;
@@ -55,7 +54,7 @@ const ARTISTS = [
     youtubeId: 'TxvpctgU_s8',
     day: 1,
     time: '10:15–12:00',
-    stage: 'Poton',
+    stage: 'Ponton',
   },
   {
     name: 'Kensington',
@@ -65,7 +64,7 @@ const ARTISTS = [
     youtubeId: 'IH77eOyV95o',
     day: 1,
     time: '12:30–13:30',
-    stage: 'Poton',
+    stage: 'Ponton',
   },
   {
     name: 'De Staat',
@@ -75,7 +74,7 @@ const ARTISTS = [
     youtubeId: '0ttGgIQpAUc',
     day: 1,
     time: '14:15–16:00',
-    stage: 'Poton',
+    stage: 'Ponton',
   },
   {
     name: 'Navarone',
@@ -85,7 +84,7 @@ const ARTISTS = [
     youtubeId: 'EvLpaCSnc4k',
     day: 1,
     time: '16:45–18:15',
-    stage: 'Poton',
+    stage: 'Ponton',
   },
   {
     name: 'Dotan',
@@ -95,7 +94,7 @@ const ARTISTS = [
     youtubeId: 'FZEuqzW16Nw',
     day: 1,
     time: '19:15–21:15',
-    stage: 'Poton',
+    stage: 'Ponton',
   },
   {
     name: 'Froukje',
@@ -105,7 +104,7 @@ const ARTISTS = [
     youtubeId: 'g4PlReX9e-E',
     day: 1,
     time: '21:45–23:30',
-    stage: 'Poton',
+    stage: 'Ponton',
   },
   {
     name: 'Martin Garrix',
@@ -115,7 +114,7 @@ const ARTISTS = [
     youtubeId: 'Zv1QV6lrc_Y',
     day: 2,
     time: '10:30–12:15',
-    stage: 'Poton',
+    stage: 'Ponton',
   },
   {
     name: 'Within Temptation',
@@ -125,7 +124,7 @@ const ARTISTS = [
     youtubeId: 'iQVei5C2N4E',
     day: 2,
     time: '13:00–15:00',
-    stage: 'Poton',
+    stage: 'Ponton',
   },
   {
     name: "Chef'Special",
@@ -135,7 +134,7 @@ const ARTISTS = [
     youtubeId: 'l3jRIr44lss',
     day: 2,
     time: '15:30–17:15',
-    stage: 'Poton',
+    stage: 'Ponton',
   },
   {
     name: 'Eefje de Visser',
@@ -145,7 +144,7 @@ const ARTISTS = [
     youtubeId: '6IlLJNmLDMg',
     day: 2,
     time: '18:30–20:30',
-    stage: 'Poton',
+    stage: 'Ponton',
   },
   {
     name: 'Spinvis',
@@ -155,17 +154,17 @@ const ARTISTS = [
     youtubeId: 'F3ZTrGWSLf4',
     day: 2,
     time: '21:15–23:00',
-    stage: 'Poton',
+    stage: 'Ponton',
   },
 ];
 
 // Stage marker positions as percentages of the map image (x: left%, y: top%)
 // Adjust these values to match the actual stage positions on the SVG map
 const STAGES = [
-  { id: 1, name: 'Poton',    color: '#E85D4A', x: 44, y: 38 },
-  { id: 2, name: 'The Lake', color: '#2E7D8B', x: 64, y: 54 },
-  { id: 3, name: 'The Club', color: '#7B2D8B', x: 68, y: 28 },
-  { id: 4, name: 'Hanggar',  color: '#2E7D52', x: 26, y: 60 },
+  { id: 1, name: 'Ponton',    color: '#E85D4A', x: 21.3, y: 62.8 },
+  { id: 2, name: 'The Lake',  color: '#2E7D8B', x: 53.9, y: 45.5 },
+  { id: 3, name: 'The Club',  color: '#7B2D8B', x: 69.3, y: 39.1 },
+  { id: 4, name: 'Hanggar',   color: '#2E7D52', x: 90.2, y: 17.1 },
 ];
 
 function haversineDistance(lat1, lng1, lat2, lng2) {
@@ -195,9 +194,17 @@ export default function MapPage() {
   const [distance, setDistance] = useState(null);
   const [selectedStage, setSelectedStage] = useState(null);
   const [selectedArtist, setSelectedArtist] = useState(null);
+  const [mapExpanded, setMapExpanded] = useState(false);
 
-  const mapsUrl = `https://maps.apple.com/?ll=${FESTIVAL_LAT},${FESTIVAL_LNG}&q=HartjeU+Festival`;
   const gmapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${FESTIVAL_LAT},${FESTIVAL_LNG}`;
+  const appleMapsUrl = `https://maps.apple.com/?ll=${FESTIVAL_LAT},${FESTIVAL_LNG}&q=HartjeU+Festival`;
+  const [mapsUrl, setMapsUrl] = useState(gmapsUrl);
+
+  useEffect(() => {
+    if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+      setMapsUrl(appleMapsUrl);
+    }
+  }, []);
 
   function requestGps() {
     if (!('geolocation' in navigator)) {
@@ -259,7 +266,7 @@ export default function MapPage() {
             {gpsLabel}
           </button>
           <a
-            href={/iPad|iPhone|iPod/.test(navigator?.userAgent ?? '') ? mapsUrl : gmapsUrl}
+            href={mapsUrl}
             className="btn btn-ghost"
             target="_blank"
             rel="noopener noreferrer"
@@ -270,82 +277,82 @@ export default function MapPage() {
 
         {gpsState === 'active' && distance !== null && (
           <p className="gps-status">
-            📍 {t.distance.replace('{d}', formatDistance(distance))}
+            <svg viewBox="0 0 24 24" style={{ width: 14, height: 14, stroke: 'currentColor', fill: 'none', strokeWidth: 2.5, strokeLinecap: 'round', strokeLinejoin: 'round', flexShrink: 0 }}>
+              <circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+            </svg>
+            {t.distance.replace('{d}', formatDistance(distance))}
           </p>
         )}
 
-        {/* Festival terrain photo */}
-        <div style={{ borderRadius: 'var(--radius)', overflow: 'hidden', height: 180, position: 'relative', marginBottom: 12, border: '1px solid var(--border)' }}>
-          <Image
-            src={`${BASE_PATH}/festival3.jpg`}
-            alt="Luchtfoto HartjeU festivalterrein"
-            fill
-            style={{ objectFit: 'cover' }}
-            sizes="600px"
-            priority
-          />
-        </div>
-
-        {/* SVG map with stage markers */}
+        {/* SVG map with stage markers overlay */}
         <div
           className="map-container"
-          style={{ position: 'relative', height: 'auto', overflow: 'visible' }}
+          onClick={() => setMapExpanded(true)}
+          title="Klik om te vergroten"
         >
           <img
-            src={`${BASE_PATH}/kaart_festival_no_markers.svg`}
+            src={`${BASE_PATH}/kaart_festival_markers (1).svg`}
             alt={t.title}
-            style={{ width: '100%', height: 'auto', display: 'block', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}
           />
 
-          {/* Stage markers */}
+          {/* Interactieve podiummarkers */}
           {STAGES.map(stage => (
             <button
               key={stage.id}
-              onClick={() => { setSelectedArtist(null); setSelectedStage(stage); }}
-              aria-label={stage.name}
-              style={{
-                position: 'absolute',
-                left: `${stage.x}%`,
-                top: `${stage.y}%`,
-                transform: 'translate(-50%, -100%)',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 2,
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                padding: 0,
-                WebkitTapHighlightColor: 'transparent',
-                zIndex: 10,
-              }}
+              className="stage-marker"
+              style={{ left: `${stage.x}%`, top: `${stage.y}%`, color: stage.color }}
+              onClick={e => { e.stopPropagation(); setSelectedStage(stage); }}
+              title={stage.name}
             >
-              {/* Pin body */}
-              <div style={{
-                background: stage.color,
-                color: 'white',
-                fontSize: '0.65rem',
-                fontWeight: 700,
-                padding: '4px 8px',
-                borderRadius: 20,
-                whiteSpace: 'nowrap',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.35)',
-                letterSpacing: '0.3px',
-              }}>
-                {stage.name}
-              </div>
-              {/* Pin tail */}
-              <div style={{
-                width: 0,
-                height: 0,
-                borderLeft: '5px solid transparent',
-                borderRight: '5px solid transparent',
-                borderTop: `7px solid ${stage.color}`,
-                marginTop: -1,
-              }} />
+              <span className="stage-marker__ring" />
+              <span
+                className="stage-marker__dot"
+                style={{ background: stage.color }}
+              />
+            </button>
+          ))}
+
+          {/* Vergroot-icoon hint */}
+          <div style={{
+            position: 'absolute', bottom: 8, right: 8,
+            background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)',
+            borderRadius: 8, padding: '4px 8px',
+            display: 'flex', alignItems: 'center', gap: 4,
+            color: 'white', fontSize: '0.7rem', fontWeight: 600, pointerEvents: 'none',
+          }}>
+            <svg viewBox="0 0 24 24" style={{ width: 13, height: 13, stroke: 'currentColor', fill: 'none', strokeWidth: 2 }}>
+              <polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" />
+              <line x1="21" y1="3" x2="14" y2="10" /><line x1="3" y1="21" x2="10" y2="14" />
+            </svg>
+            Vergroten
+          </div>
+        </div>
+
+        {/* Podium legenda */}
+        <div className="stage-legend">
+          {STAGES.map(stage => (
+            <button
+              key={stage.id}
+              className="stage-legend-pill"
+              onClick={() => setSelectedStage(stage)}
+              style={{ '--stage-color': stage.color }}
+            >
+              <span style={{ width: 10, height: 10, borderRadius: '50%', background: stage.color, display: 'inline-block', flexShrink: 0 }} />
+              {stage.name}
             </button>
           ))}
         </div>
+
+        {/* Expanded kaart overlay */}
+        {mapExpanded && (
+          <ExpandedMap
+            basePath={BASE_PATH}
+            t={t}
+            stages={STAGES}
+            onStageClick={stage => { setMapExpanded(false); setSelectedStage(stage); }}
+            onClose={() => setMapExpanded(false)}
+          />
+        )}
       </div>
 
       {/* Bottom sheet overlay */}
@@ -451,6 +458,196 @@ export default function MapPage() {
             )}
           </div>
         ) : null}
+      </div>
+    </div>
+  );
+}
+
+const OVERLAY_BTN = {
+  background: 'rgba(255,255,255,0.15)',
+  border: '1px solid rgba(255,255,255,0.25)',
+  borderRadius: 8, color: 'white', fontSize: '1.3rem',
+  width: 36, height: 36, cursor: 'pointer',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+};
+
+function ExpandedMap({ basePath, t, stages, onStageClick, onClose }) {
+  const containerRef = useRef(null);
+  const stateRef = useRef({ scale: 1, tx: 0, ty: 0, gesture: null });
+  const [, forceRender] = useState(0);
+
+  function commit(scale, tx, ty) {
+    const s = Math.min(5, Math.max(1, scale));
+    const el = containerRef.current;
+    if (el) {
+      const cw = el.clientWidth;
+      const ch = el.clientHeight;
+      const ratio = 2330.58 / 1353.19;
+      tx = Math.min(0, Math.max(cw - cw * s, tx));
+      ty = Math.min(0, Math.max(ch - (cw / ratio) * s, ty));
+    }
+    stateRef.current = { ...stateRef.current, scale: s, tx, ty };
+    forceRender(n => n + 1);
+  }
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    function dist(t) {
+      return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+    }
+    function mid(t) {
+      return { x: (t[0].clientX + t[1].clientX) / 2, y: (t[0].clientY + t[1].clientY) / 2 };
+    }
+
+    function onTouchStart(e) {
+      e.preventDefault();
+      const { scale, tx, ty } = stateRef.current;
+      const rect = el.getBoundingClientRect();
+      if (e.touches.length >= 2) {
+        stateRef.current.gesture = {
+          type: 'pinch',
+          d0: dist(e.touches), m0: mid(e.touches),
+          scale0: scale, tx0: tx, ty0: ty,
+        };
+      } else {
+        stateRef.current.gesture = {
+          type: 'pan',
+          x0: e.touches[0].clientX - rect.left,
+          y0: e.touches[0].clientY - rect.top,
+          tx0: tx, ty0: ty,
+        };
+      }
+    }
+
+    function onTouchMove(e) {
+      e.preventDefault();
+      const g = stateRef.current.gesture;
+      if (!g) return;
+      const rect = el.getBoundingClientRect();
+      if (e.touches.length >= 2 && g.type === 'pinch') {
+        const newScale = g.scale0 * dist(e.touches) / g.d0;
+        const m = mid(e.touches);
+        const mx = m.x - rect.left;
+        const my = m.y - rect.top;
+        const px = (mx - g.tx0) / g.scale0;
+        const py = (my - g.ty0) / g.scale0;
+        commit(newScale, mx - px * newScale, my - py * newScale);
+      } else if (e.touches.length === 1 && g.type === 'pan') {
+        const dx = (e.touches[0].clientX - rect.left) - g.x0;
+        const dy = (e.touches[0].clientY - rect.top) - g.y0;
+        commit(stateRef.current.scale, g.tx0 + dx, g.ty0 + dy);
+      }
+    }
+
+    function onTouchEnd(e) {
+      const { scale, tx, ty } = stateRef.current;
+      if (e.touches.length === 0) {
+        stateRef.current.gesture = null;
+      } else if (e.touches.length === 1) {
+        const rect = el.getBoundingClientRect();
+        stateRef.current.gesture = {
+          type: 'pan',
+          x0: e.touches[0].clientX - rect.left,
+          y0: e.touches[0].clientY - rect.top,
+          tx0: tx, ty0: ty,
+        };
+      }
+    }
+
+    el.addEventListener('touchstart', onTouchStart, { passive: false });
+    el.addEventListener('touchmove', onTouchMove, { passive: false });
+    el.addEventListener('touchend', onTouchEnd, { passive: false });
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('touchmove', onTouchMove);
+      el.removeEventListener('touchend', onTouchEnd);
+    };
+  }, []);
+
+  const { scale, tx, ty } = stateRef.current;
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: '#111', display: 'flex', flexDirection: 'column' }}>
+      {/* Header */}
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        padding: '10px 12px 8px', flexShrink: 0,
+        background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)',
+        borderBottom: '1px solid rgba(255,255,255,0.08)',
+      }}>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <button style={OVERLAY_BTN} onClick={() => { const {scale:s,tx,ty}=stateRef.current; commit(s-0.25,tx,ty); }}>−</button>
+          <button
+            onClick={() => commit(1, 0, 0)}
+            style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.75rem', minWidth: 36, textAlign: 'center', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 2px' }}
+          >
+            {Math.round(scale * 100)}%
+          </button>
+          <button style={OVERLAY_BTN} onClick={() => { const {scale:s,tx,ty}=stateRef.current; commit(s+0.25,tx,ty); }}>+</button>
+        </div>
+        <button
+          onClick={onClose}
+          style={{ ...OVERLAY_BTN, width: 'auto', fontSize: '0.85rem', padding: '0 14px' }}
+        >
+          ✕ {t.close}
+        </button>
+      </div>
+
+      {/* Kaartgebied */}
+      <div ref={containerRef} style={{ flex: 1, overflow: 'hidden', position: 'relative', touchAction: 'none' }}>
+        {/* Schaalplaatje met markers */}
+        <div style={{
+          position: 'absolute', top: 0, left: 0, width: '100%',
+          transformOrigin: '0 0',
+          transform: `translate(${tx}px,${ty}px) scale(${scale})`,
+        }}>
+          <img
+            src={`${basePath}/kaart_festival_markers (1).svg`}
+            alt={t.title}
+            draggable={false}
+            style={{ width: '100%', height: 'auto', display: 'block', userSelect: 'none', pointerEvents: 'none' }}
+          />
+          {stages.map(stage => (
+            <button
+              key={stage.id}
+              className="stage-marker"
+              style={{
+                left: `${stage.x}%`, top: `${stage.y}%`, color: stage.color,
+                transform: `translate(-50%, -50%) scale(${1 / scale})`,
+              }}
+              onClick={() => onStageClick(stage)}
+            >
+              <span className="stage-marker__ring" />
+              <span className="stage-marker__dot" style={{ background: stage.color }} />
+            </button>
+          ))}
+        </div>
+
+        {/* Legenda */}
+        <img
+          src={`${basePath}/legenda (1).svg`}
+          alt="Legenda"
+          style={{
+            position: 'absolute', bottom: 10, right: 10, width: 90, height: 'auto',
+            borderRadius: 'var(--radius-sm)', background: 'white',
+            border: '1px solid rgba(255,255,255,0.15)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.4)', pointerEvents: 'none',
+          }}
+        />
+
+        {scale === 1 && (
+          <div style={{
+            position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)',
+            background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)',
+            borderRadius: 20, padding: '5px 12px',
+            color: 'rgba(255,255,255,0.75)', fontSize: '0.72rem',
+            pointerEvents: 'none', whiteSpace: 'nowrap',
+          }}>
+            Knijp om in te zoomen · sleep om te bewegen
+          </div>
+        )}
       </div>
     </div>
   );

@@ -25,6 +25,9 @@ try {
         case 'locations':
             handleLocations();
             break;
+        case 'festival_info':
+            handleInfo($method, $id, $input);
+            break;
         default:
             http_response_code(404);
             echo json_encode(['error' => 'Onbekende resource']);
@@ -44,7 +47,7 @@ function handleArtists(string $method, int $id, array $input): void
     switch ($method) {
         case 'GET':
             $stmt = $db->query('
-                SELECT id, name, category, genre, description_nl, description_en, image_url
+                SELECT id, name, category, genre, description_nl, description_en, image_url, bio_nl, bio_en, youtube_url
                 FROM artists
                 ORDER BY category ASC, name ASC
             ');
@@ -57,8 +60,8 @@ function handleArtists(string $method, int $id, array $input): void
 
         case 'POST':
             $stmt = $db->prepare('
-                INSERT INTO artists (name, category, genre, description_nl, description_en, image_url)
-                VALUES (:name, :category, :genre, :desc_nl, :desc_en, :img)
+                INSERT INTO artists (name, category, genre, description_nl, description_en, image_url, bio_nl, bio_en, youtube_url)
+                VALUES (:name, :category, :genre, :desc_nl, :desc_en, :img, :bio_nl, :bio_en, :yt)
             ');
             $stmt->execute([
                 'name'     => trim($input['name'] ?? ''),
@@ -67,6 +70,9 @@ function handleArtists(string $method, int $id, array $input): void
                 'desc_nl'  => trim($input['description_nl'] ?? ''),
                 'desc_en'  => trim($input['description_en'] ?? ''),
                 'img'      => $input['image_url'] ?: null,
+                'bio_nl'   => trim($input['bio_nl'] ?? '') ?: null,
+                'bio_en'   => trim($input['bio_en'] ?? '') ?: null,
+                'yt'       => trim($input['youtube_url'] ?? '') ?: null,
             ]);
             echo json_encode(['ok' => true, 'id' => (int) $db->lastInsertId()]);
             break;
@@ -76,7 +82,8 @@ function handleArtists(string $method, int $id, array $input): void
             $stmt = $db->prepare('
                 UPDATE artists
                 SET name=:name, category=:category, genre=:genre,
-                    description_nl=:desc_nl, description_en=:desc_en, image_url=:img
+                    description_nl=:desc_nl, description_en=:desc_en, image_url=:img,
+                    bio_nl=:bio_nl, bio_en=:bio_en, youtube_url=:yt
                 WHERE id=:id
             ');
             $stmt->execute([
@@ -86,6 +93,9 @@ function handleArtists(string $method, int $id, array $input): void
                 'desc_nl'  => trim($input['description_nl'] ?? ''),
                 'desc_en'  => trim($input['description_en'] ?? ''),
                 'img'      => $input['image_url'] ?: null,
+                'bio_nl'   => trim($input['bio_nl'] ?? '') ?: null,
+                'bio_en'   => trim($input['bio_en'] ?? '') ?: null,
+                'yt'       => trim($input['youtube_url'] ?? '') ?: null,
                 'id'       => $id,
             ]);
             echo json_encode(['ok' => true]);
@@ -171,6 +181,50 @@ function handleSchedule(string $method, int $id, array $input): void
         case 'DELETE':
             if (!$id) { http_response_code(400); echo json_encode(['error' => 'Geen id']); return; }
             $db->prepare('DELETE FROM schedule WHERE id=?')->execute([$id]);
+            echo json_encode(['ok' => true]);
+            break;
+
+        default:
+            http_response_code(405);
+            echo json_encode(['error' => 'Methode niet toegestaan']);
+    }
+}
+
+// -------------------------------------------------------
+// Festival info teksten
+// -------------------------------------------------------
+function handleInfo(string $method, int $id, array $input): void
+{
+    $db = getDb();
+    switch ($method) {
+        case 'GET':
+            $stmt = $db->query('
+                SELECT id, `key`, title_nl, title_en, content_nl, content_en, sort_order
+                FROM festival_info
+                ORDER BY sort_order ASC
+            ');
+            $rows = $stmt->fetchAll();
+            foreach ($rows as &$r) {
+                $r['id']         = (int) $r['id'];
+                $r['sort_order'] = (int) $r['sort_order'];
+            }
+            echo json_encode($rows, JSON_UNESCAPED_UNICODE);
+            break;
+
+        case 'PUT':
+            if (!$id) { http_response_code(400); echo json_encode(['error' => 'Geen id']); return; }
+            $stmt = $db->prepare('
+                UPDATE festival_info
+                SET title_nl=:tnl, title_en=:ten, content_nl=:cnl, content_en=:cen
+                WHERE id=:id
+            ');
+            $stmt->execute([
+                'tnl' => trim($input['title_nl']   ?? ''),
+                'ten' => trim($input['title_en']   ?? ''),
+                'cnl' => trim($input['content_nl'] ?? ''),
+                'cen' => trim($input['content_en'] ?? ''),
+                'id'  => $id,
+            ]);
             echo json_encode(['ok' => true]);
             break;
 

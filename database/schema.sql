@@ -158,7 +158,7 @@ CREATE TABLE IF NOT EXISTS `festival_info` (
 -- Podia / locaties
 -- -----------------------------------------------------
 INSERT INTO `locations` (`name_nl`, `name_en`, `type`, `lat`, `lng`, `color`) VALUES
-  ('Poton',       'Poton',        'stage',    52.0672, 5.0832, '#E85D4A'),
+  ('Ponton',       'Ponton',        'stage',    52.0672, 5.0832, '#E85D4A'),
   ('The Lake',    'The Lake',     'stage',    52.0668, 5.0835, '#2E7D8B'),
   ('The Club',    'The Club',     'stage',    52.0665, 5.0828, '#7B2D8B'),
   ('Hanggar',     'Hanggar',      'stage',    52.0670, 5.0826, '#2E7D52'),
@@ -166,7 +166,7 @@ INSERT INTO `locations` (`name_nl`, `name_en`, `type`, `lat`, `lng`, `color`) VA
   ('EHBO',        'First Aid',    'medical',  52.0674, 5.0825, '#CC0000');
 
 -- -----------------------------------------------------
--- Artiesten — Poton (headliners)
+-- Artiesten — Ponton (headliners)
 -- -----------------------------------------------------
 INSERT INTO `artists` (`name`, `category`, `genre`, `description_nl`, `description_en`) VALUES
   -- Zaterdag
@@ -236,7 +236,7 @@ INSERT INTO `artists` (`name`, `category`, `genre`, `description_nl`, `descripti
 
 -- -----------------------------------------------------
 -- Programma — dag 1, zaterdag 15 aug 2026
--- stage_id: 1=Poton, 2=The Lake, 3=The Club, 4=Hanggar
+-- stage_id: 1=Ponton, 2=The Lake, 3=The Club, 4=Hanggar
 -- artist_id gebaseerd op volgorde van inserts hierboven:
 --   1-11  = headliners (1-6 zaterdag, 7-11 zondag)
 --   12-18 = talent ZA 1-7
@@ -246,7 +246,7 @@ INSERT INTO `artists` (`name`, `category`, `genre`, `description_nl`, `descripti
 --   40-47 = DJ ZO 1-8
 -- -----------------------------------------------------
 
--- Poton – zaterdag
+-- Ponton – zaterdag
 INSERT INTO `schedule` (`artist_id`, `stage_id`, `day`, `start_time`, `end_time`) VALUES
   (1,  1, 1, '10:15', '12:00'),  -- Armin van Buuren
   (2,  1, 1, '12:30', '13:30'),  -- Kensington
@@ -289,7 +289,7 @@ INSERT INTO `schedule` (`artist_id`, `stage_id`, `day`, `start_time`, `end_time`
 -- Programma — dag 2, zondag 16 aug 2026
 -- -----------------------------------------------------
 
--- Poton – zondag
+-- Ponton – zondag
 INSERT INTO `schedule` (`artist_id`, `stage_id`, `day`, `start_time`, `end_time`) VALUES
   (7,  1, 2, '10:30', '12:15'),  -- Martin Garrix
   (8,  1, 2, '13:00', '15:00'),  -- Within Temptation

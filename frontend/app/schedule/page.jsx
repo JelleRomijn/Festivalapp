@@ -4,14 +4,14 @@ import { useState, useEffect } from 'react';
 import { useApp } from '@/components/AppContext';
 
 const STAGES = [
-  { id: 1, name: { nl: 'Poton', en: 'Poton' }, color: '#F03228' },
+  { id: 1, name: { nl: 'Ponton', en: 'Ponton' }, color: '#F03228' },
   { id: 2, name: { nl: 'The Lake', en: 'The Lake' }, color: '#247BA0' },
   { id: 3, name: { nl: 'The Club', en: 'The Club' }, color: '#E3B505' },
   { id: 4, name: { nl: 'Hanggar', en: 'Hanggar' }, color: '#555555' },
 ];
 
 const ACTS = [
-  // Zaterdag — Poton
+  // Zaterdag — Ponton
   { id: 1,  name: 'Armin van Buuren',  stage_id: 1, day: 1, start: '10:45', end: '12:45', genre: 'Trance / EDM',
     bio_nl: 'Vijfvoudig "World\'s No. 1 DJ" en trance-icoon. Armin levert euforische, energieke sets die headliner zijn geweest op Tomorrowland en Ultra. Zijn opzwepende melodieën en onberispelijke mixing houden het publiek urenlang aan het dansen.',
     bio_en: 'Five-time "World\'s No. 1 DJ" and trance icon, Armin delivers euphoric, high-energy sets that have headlined festivals from Tomorrowland to Ultra. His uplifting melodies and impeccable mixing keep crowds dancing for hours.',
@@ -64,7 +64,7 @@ const ACTS = [
   { id: 26, name: 'DJ set 7',          stage_id: 4, day: 1, start: '20:15', end: '21:45', genre: 'DJ' },
   { id: 27, name: 'DJ set 8',          stage_id: 4, day: 1, start: '22:00', end: '23:45', genre: 'DJ' },
 
-  // Zondag — Poton
+  // Zondag — Ponton
   { id: 28, name: 'Martin Garrix',     stage_id: 1, day: 2, start: '11:00', end: '13:00', genre: 'EDM',
     bio_nl: 'Als tiener brak hij door met "Animals". Martin Garrix is een van de grootste namen in de EDM-wereld. Zijn anthemische big-room tracks en stadiongrote drops maken hem een festivalfavoriet door heel Europa.',
     bio_en: 'Broke through as a teenager with "Animals," Martin Garrix has become one of the biggest names in EDM. His anthemic big-room tracks and stadium-sized drops make him a festival favorite across Europe.',
@@ -173,7 +173,13 @@ export default function SchedulePage() {
       fetch(`${API_URL}/locations.php?type=stage`).then(r => r.json()),
     ])
       .then(([scheduleData, stageData]) => {
-        setActs(scheduleData);
+        const merged = scheduleData.map(apiAct => {
+          const local = ACTS.find(a => a.id === apiAct.id);
+          return local
+            ? { ...apiAct, bio_nl: local.bio_nl, bio_en: local.bio_en, youtube_url: local.youtube_url }
+            : apiAct;
+        });
+        setActs(merged);
         setStages(stageData);
       })
       .catch(() => {});
@@ -284,91 +290,117 @@ export default function SchedulePage() {
         </div>
       </div>
 
-      {/* Act-detail sheet */}
+      {/* Overlay */}
       {selectedAct && (
         <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'var(--overlay)',
-            zIndex: 200,
-            display: 'flex',
-            alignItems: 'flex-end',
-          }}
           onClick={() => setSelectedAct(null)}
+          style={{ position: 'fixed', inset: 0, background: 'var(--overlay)', zIndex: 200 }}
+        />
+      )}
+
+      {/* Act-detail sheet */}
+      <div
+        style={{
+          position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 201,
+          background: 'var(--bg-card)',
+          borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
+          boxShadow: '0 -4px 32px rgba(0,0,0,0.2)',
+          maxHeight: '85dvh', overflowY: 'auto',
+          transform: selectedAct ? 'translateY(0)' : 'translateY(110%)',
+          transition: 'transform 300ms cubic-bezier(0.32,0.72,0,1)',
+          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)',
+          WebkitOverflowScrolling: 'touch',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Handle */}
+        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 10, paddingBottom: 2 }}>
+          <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(128,128,128,0.35)' }} />
+        </div>
+
+        {selectedAct && <ActDetail act={selectedAct} stages={stages} language={language} onClose={() => setSelectedAct(null)} />}
+      </div>
+    </div>
+  );
+}
+
+function ActDetail({ act, stages, language, onClose }) {
+  const stage = stages.find(s => s.id === act.stage_id);
+  const bio = language === 'nl' ? act.bio_nl : act.bio_en;
+  const stageName = stage ? (typeof stage.name === 'object' ? stage.name[language] : stage.name) : null;
+
+  return (
+    <div>
+      {/* Gekleurde header */}
+      <div style={{
+        background: stage ? `linear-gradient(135deg, ${stage.color}dd, ${stage.color}88)` : 'var(--border)',
+        padding: '20px 20px 16px',
+        position: 'relative',
+      }}>
+        <button
+          onClick={onClose}
+          aria-label="Sluiten"
+          style={{
+            position: 'absolute', top: 12, right: 12,
+            width: 32, height: 32, borderRadius: '50%',
+            background: 'rgba(0,0,0,0.25)', border: 'none',
+            color: 'white', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '1.1rem', lineHeight: 1,
+          }}
         >
-          <div
-            style={{
-              background: 'var(--bg-card)',
-              borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
-              width: '100%',
-              maxHeight: '85dvh',
-              overflowY: 'auto',
-              paddingBottom: 'var(--safe-bottom)',
-            }}
-            onClick={e => e.stopPropagation()}
-          >
-            <div style={{ padding: '24px 20px 0' }}>
-              <div
-                style={{
-                  width: 40,
-                  height: 4,
-                  background: 'var(--border)',
-                  borderRadius: 2,
-                  margin: '0 auto 20px',
-                }}
+          ×
+        </button>
+
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 900, letterSpacing: '-0.5px', color: 'white', margin: '0 40px 10px 0', lineHeight: 1.2 }}>
+          {act.name}
+        </h2>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          {stageName && (
+            <span style={{ fontSize: '0.72rem', background: 'rgba(255,255,255,0.25)', color: 'white', borderRadius: 20, padding: '3px 10px', fontWeight: 700, backdropFilter: 'blur(4px)' }}>
+              {stageName}
+            </span>
+          )}
+          <span style={{ fontSize: '0.72rem', background: 'rgba(255,255,255,0.15)', color: 'white', borderRadius: 20, padding: '3px 10px', backdropFilter: 'blur(4px)' }}>
+            {act.genre}
+          </span>
+          <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.85)', display: 'flex', alignItems: 'center', gap: 4 }}>
+            🕐 {act.start} – {act.end}
+          </span>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div style={{ padding: '16px 20px 24px' }}>
+        {bio ? (
+          <p style={{ fontSize: '0.9rem', lineHeight: 1.75, color: 'var(--text-muted)', margin: '0 0 20px' }}>
+            {bio}
+          </p>
+        ) : (
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic', margin: '0 0 20px' }}>
+            {language === 'nl' ? 'Meer info volgt binnenkort.' : 'More info coming soon.'}
+          </p>
+        )}
+
+        {act.youtube_url && (
+          <>
+            <p style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: 8 }}>
+              {language === 'nl' ? 'Beluisteren' : 'Listen'}
+            </p>
+            <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, borderRadius: 10, overflow: 'hidden', boxShadow: '0 4px 16px rgba(0,0,0,0.2)' }}>
+              <iframe
+                src={act.youtube_url}
+                title={act.name}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                loading="lazy"
+                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 0 }}
               />
             </div>
-            {(() => {
-              const stage = stages.find(s => s.id === selectedAct.stage_id);
-              const bio = language === 'nl' ? selectedAct.bio_nl : selectedAct.bio_en;
-              return (
-                <>
-                  <div style={{ padding: '0 20px' }}>
-                    <h2 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: 6 }}>
-                      {selectedAct.name}
-                    </h2>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: 4 }}>
-                      {selectedAct.start} – {selectedAct.end}
-                    </p>
-                    <p style={{ color: stage?.color, fontSize: '0.9rem', fontWeight: 600 }}>
-                      {stage?.name[language]}
-                    </p>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: 4 }}>
-                      {selectedAct.genre}
-                    </p>
-                    {bio && (
-                      <p style={{ fontSize: '0.9rem', lineHeight: 1.6, marginTop: 14, color: 'var(--text)' }}>
-                        {bio}
-                      </p>
-                    )}
-                  </div>
-                  {selectedAct.youtube_url && (
-                    <div style={{ marginTop: 20, paddingBottom: 24 }}>
-                      <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
-                        <iframe
-                          src={selectedAct.youtube_url}
-                          title={selectedAct.name}
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                          style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            width: '100%',
-                            height: '100%',
-                            border: 0,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </>
-              );
-            })()}
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </div>
     </div>
   );
 }

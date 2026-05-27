@@ -28,8 +28,10 @@ export default function NotificationButton() {
   const { language } = useApp();
   const t = TEXTS[language];
   const [permission, setPermission] = useState('default');
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     if ('Notification' in window) {
       setPermission(Notification.permission);
     }
@@ -54,7 +56,7 @@ export default function NotificationButton() {
     }
   }
 
-  const isUnsupported = typeof window === 'undefined' || !('Notification' in window);
+  const isUnsupported = !mounted || !('Notification' in window);
   const isGranted = permission === 'granted';
   const isDenied = permission === 'denied';
 

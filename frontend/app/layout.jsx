@@ -49,7 +49,10 @@ export default function RootLayout({ children }) {
         <AppProvider>
           {/* Vaste header met logo en controls */}
           <header className="app-header">
-            <span className="app-header__logo">HartjeU</span>
+            <div className="app-header__logo">
+              <img src="/logowhite.png" alt="HartjeU Festival" className="logo-light" />
+              <img src="/logoblack.png" alt="HartjeU Festival" className="logo-dark" />
+            </div>
             <div className="app-header__controls">
               <ThemeToggle />
               <LanguageSwitcher />

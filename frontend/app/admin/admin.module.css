@@ -364,3 +364,164 @@
   text-align: center;
   color: var(--text-muted);
 }
+
+/* Section hint */
+.sectionHint {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+}
+
+/* Artiest form paneel */
+.artistFormPanel {
+  background: var(--bg-card);
+  border: 1.5px solid var(--color-primary);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.1rem 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.artistFormPanel h3 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.artistFormGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 220px;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 700px) {
+  .artistFormGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.artistFormCol {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.artistFormActions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.formLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.formLabel input,
+.formLabel select,
+.formLabel textarea {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.875rem;
+  background: var(--bg);
+  color: var(--text);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  transition: border-color var(--transition);
+  resize: vertical;
+}
+
+.formLabel input:focus,
+.formLabel select:focus,
+.formLabel textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+/* Upload knop */
+.uploadBtn {
+  padding: 0.4rem 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  background: color-mix(in srgb, var(--color-cerulean), transparent 80%);
+  color: var(--color-cerulean);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: opacity var(--transition);
+}
+
+.uploadBtn:hover:not(:disabled) { opacity: 0.7; }
+.uploadBtn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Info kaarten */
+.infoCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem;
+  margin-bottom: 0.75rem;
+  box-shadow: var(--shadow);
+}
+
+.infoCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.infoKey {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-right: 0.5rem;
+}
+
+.infoTitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.infoTitleEn {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.infoBody {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Info edit paneel */
+.infoEditPanel {
+  background: var(--bg-card);
+  border: 1.5px solid var(--color-primary);
+  border-radius: var(--radius);
+  padding: 1.1rem;
+  margin-bottom: 0.75rem;
+}
+
+.infoEditGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+@media (max-width: 600px) {
+  .infoEditGrid { grid-template-columns: 1fr; }
+}
+
+.infoEditGrid .formLabel input,
+.infoEditGrid .formLabel textarea {
+  width: 100%;
+}
