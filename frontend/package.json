@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "postbuild": "node -e \"const{cpSync}=require('fs');cpSync('out','..',{recursive:true,force:true});console.log('Static export copied to repo root.')\"",
     "start": "next start"
   },
   "dependencies": {

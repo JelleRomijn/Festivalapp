@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useApp } from '@/components/AppContext';
 import NotificationButton from '@/components/NotificationButton';
 
@@ -153,12 +152,12 @@ export default function HomePage() {
         {/* Fotogalerij */}
         <p style={{ fontWeight: 700, fontSize: '1rem', marginBottom: 12 }}>{t.galleryLabel}</p>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 20 }}>
-          <div style={{ gridColumn: '1 / -1', borderRadius: 'var(--radius)', overflow: 'hidden', height: 180, position: 'relative' }}>
-            <Image src={GALLERY_PHOTOS[0].src} alt={GALLERY_PHOTOS[0].alt} fill style={{ objectFit: 'cover' }} sizes="600px" />
+          <div style={{ gridColumn: '1 / -1', borderRadius: 'var(--radius)', overflow: 'hidden', height: 180 }}>
+            <img src={`${process.env.NEXT_PUBLIC_BASE_PATH}${GALLERY_PHOTOS[0].src}`} alt={GALLERY_PHOTOS[0].alt} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
           </div>
           {GALLERY_PHOTOS.slice(1).map(photo => (
-            <div key={photo.src} style={{ borderRadius: 'var(--radius)', overflow: 'hidden', height: 120, position: 'relative' }}>
-              <Image src={photo.src} alt={photo.alt} fill style={{ objectFit: 'cover' }} sizes="300px" />
+            <div key={photo.src} style={{ borderRadius: 'var(--radius)', overflow: 'hidden', height: 120 }}>
+              <img src={`${process.env.NEXT_PUBLIC_BASE_PATH}${photo.src}`} alt={photo.alt} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             </div>
           ))}
         </div>
