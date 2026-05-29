@@ -42,7 +42,9 @@ export default function RootLayout({ children }) {
             __html: `(function(){try{var t=localStorage.getItem('hartjeu-theme')||((window.matchMedia('(prefers-color-scheme:dark)').matches)?'dark':'light');var l=localStorage.getItem('hartjeu-lang')||'nl';document.documentElement.setAttribute('data-theme',t);document.documentElement.setAttribute('lang',l);}catch(e){}})();`,
           }}
         />
-        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+        <link rel="manifest" href={`${process.env.NEXT_PUBLIC_BASE_PATH}/manifest.webmanifest`} />
+        <link rel="apple-touch-icon" href={`${process.env.NEXT_PUBLIC_BASE_PATH}/icons/apple-touch-icon.png`} />
+        <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body>
         <AppProvider>
