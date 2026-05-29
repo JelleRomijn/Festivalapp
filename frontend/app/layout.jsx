@@ -2,6 +2,7 @@ import { AppProvider } from '@/components/AppContext';
 import Navigation from '@/components/Navigation';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import ThemeToggle from '@/components/ThemeToggle';
+import ServiceWorkerUpdater from '@/components/ServiceWorkerUpdater';
 import './globals.css';
 
 export const metadata = {
@@ -47,6 +48,7 @@ export default function RootLayout({ children }) {
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body>
+        <ServiceWorkerUpdater />
         <AppProvider>
           {/* Vaste header met logo en controls */}
           <header className="app-header">
