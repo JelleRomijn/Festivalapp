@@ -17,14 +17,17 @@ const nextConfig = {
 
 module.exports = withPWA({
   dest: 'public',           // Service Worker wordt gegenereerd in /public
-  cacheOnFrontEndNav: true, // Cache bij navigatie binnen de app
-  aggressiveFrontEndNavCaching: true,
+  cacheOnFrontEndNav: false,
+  aggressiveFrontEndNavCaching: false,
   reloadOnOnline: true,     // Herlaad pagina als verbinding terugkomt
   disable: process.env.NODE_ENV === 'development', // SW uit in development
   workboxOptions: {
     disableDevLogs: true,
-    // Voeg hier extra cache-strategieën toe voor API calls
     runtimeCaching: [
+      {
+        urlPattern: /\/admin(\/|$)/,
+        handler: 'NetworkOnly',
+      },
       {
         urlPattern: /\/api\//,
         handler: 'NetworkFirst',

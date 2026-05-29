@@ -1,1 +1,0 @@
-self.addEventListener("fetch",e=>{"navigate"===e.request.mode&&new URL(e.request.url).pathname.includes("/admin")&&e.respondWith(fetch(e.request,{cache:"no-store"}))}),self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(e=>Promise.all(e.filter(e=>!e.startsWith("workbox-precache")).map(e=>caches.delete(e)))))});
