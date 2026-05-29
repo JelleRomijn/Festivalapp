@@ -46,9 +46,9 @@ const TEXTS = {
 };
 
 const GALLERY_PHOTOS = [
-  { src: '/festival1.jpg', alt: 'Crowd inside the main tent' },
-  { src: '/festival2.jpg', alt: 'Outdoor stage with palm trees' },
-  { src: '/festival3.jpg', alt: 'Aerial view of the festival grounds' },
+  { src: '/festival1.webp', alt: 'Crowd inside the main tent' },
+  { src: '/festival2.webp', alt: 'Outdoor stage with palm trees' },
+  { src: '/festival3.webp', alt: 'Aerial view of the festival grounds' },
 ];
 
 function useCountdown(target) {
@@ -153,11 +153,11 @@ export default function HomePage() {
         <p style={{ fontWeight: 700, fontSize: '1rem', marginBottom: 12 }}>{t.galleryLabel}</p>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 20 }}>
           <div style={{ gridColumn: '1 / -1', borderRadius: 'var(--radius)', overflow: 'hidden', height: 180 }}>
-            <img src={`${process.env.NEXT_PUBLIC_BASE_PATH}${GALLERY_PHOTOS[0].src}`} alt={GALLERY_PHOTOS[0].alt} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            <img src={`${process.env.NEXT_PUBLIC_BASE_PATH}${GALLERY_PHOTOS[0].src}`} alt={GALLERY_PHOTOS[0].alt} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
           </div>
           {GALLERY_PHOTOS.slice(1).map(photo => (
             <div key={photo.src} style={{ borderRadius: 'var(--radius)', overflow: 'hidden', height: 120 }}>
-              <img src={`${process.env.NEXT_PUBLIC_BASE_PATH}${photo.src}`} alt={photo.alt} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+              <img src={`${process.env.NEXT_PUBLIC_BASE_PATH}${photo.src}`} alt={photo.alt} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             </div>
           ))}
         </div>

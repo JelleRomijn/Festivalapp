@@ -51,8 +51,8 @@ export default function RootLayout({ children }) {
           {/* Vaste header met logo en controls */}
           <header className="app-header">
             <div className="app-header__logo">
-              <img src={`${process.env.NEXT_PUBLIC_BASE_PATH}/logoWhite.png`} alt="HartjeU Festival" className="logo-light" />
-              <img src={`${process.env.NEXT_PUBLIC_BASE_PATH}/logoBlack.png`} alt="HartjeU Festival" className="logo-dark" />
+              <img src={`${process.env.NEXT_PUBLIC_BASE_PATH}/logoWhite.webp`} alt="HartjeU Festival" className="logo-light" fetchpriority="high" />
+              <img src={`${process.env.NEXT_PUBLIC_BASE_PATH}/logoBlack.webp`} alt="HartjeU Festival" className="logo-dark" fetchpriority="high" />
             </div>
             <div className="app-header__controls">
               <ThemeToggle />

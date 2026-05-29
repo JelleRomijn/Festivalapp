@@ -324,6 +324,7 @@ export default function MapPage() {
           <img
             src={`${BASE_PATH}/kaart_festival_markers (1).svg`}
             alt={t.title}
+            loading="lazy"
           />
 
           {/* Interactieve podiummarkers */}
