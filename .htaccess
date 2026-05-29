@@ -1,0 +1,16 @@
+<IfModule mod_headers.c>
+    # HTML pages: never cache — always fetch fresh from server
+    <FilesMatch "\.html$">
+        Header set Cache-Control "no-store, must-revalidate"
+    </FilesMatch>
+
+    # Next.js static assets have content-hash filenames — safe to cache forever
+    <FilesMatch "\.(js|css)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+
+    # Images and fonts: cache for 7 days
+    <FilesMatch "\.(webp|png|jpg|jpeg|svg|ico|woff|woff2)$">
+        Header set Cache-Control "public, max-age=604800"
+    </FilesMatch>
+</IfModule>
