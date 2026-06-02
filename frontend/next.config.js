@@ -1,6 +1,6 @@
 const withPWA = require('@ducanh2912/next-pwa').default;
 
-const BASE_PATH = process.env.NODE_ENV === 'production' ? '/Festival-app' : '';
+const BASE_PATH = '';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
