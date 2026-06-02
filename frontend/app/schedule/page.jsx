@@ -174,7 +174,16 @@ export default function SchedulePage() {
       fetch(`${API_URL}/locations.php?type=stage`, { signal }).then(r => r.json()),
     ])
       .then(([scheduleData, stageData]) => {
-        setActs(scheduleData);
+        const merged = scheduleData.map(apiAct => {
+          const fallback = ACTS.find(a => a.name === apiAct.name);
+          return {
+            ...apiAct,
+            bio_nl:      apiAct.bio_nl      || fallback?.bio_nl      || null,
+            bio_en:      apiAct.bio_en      || fallback?.bio_en      || null,
+            youtube_url: apiAct.youtube_url || fallback?.youtube_url || null,
+          };
+        });
+        setActs(merged);
         setStages(stageData);
       })
       .catch(() => {
