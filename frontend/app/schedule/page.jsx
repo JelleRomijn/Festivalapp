@@ -168,15 +168,19 @@ export default function SchedulePage() {
 
   useEffect(() => {
     if (!API_URL) return;
+    const signal = AbortSignal.timeout(8000);
     Promise.all([
-      fetch(`${API_URL}/schedule.php`).then(r => r.json()),
-      fetch(`${API_URL}/locations.php?type=stage`).then(r => r.json()),
+      fetch(`${API_URL}/schedule.php`, { signal }).then(r => r.json()),
+      fetch(`${API_URL}/locations.php?type=stage`, { signal }).then(r => r.json()),
     ])
       .then(([scheduleData, stageData]) => {
         setActs(scheduleData);
         setStages(stageData);
       })
-      .catch(() => {});
+      .catch(() => {
+        setActs(ACTS);
+        setStages(STAGES);
+      });
   }, []);
 
   const dayActs = acts.filter(a => a.day === selectedDay);

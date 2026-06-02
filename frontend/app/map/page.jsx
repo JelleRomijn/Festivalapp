@@ -200,9 +200,10 @@ export default function MapPage() {
 
   useEffect(() => {
     if (!API_URL) return;
+    const signal = AbortSignal.timeout(8000);
     Promise.all([
-      fetch(`${API_URL}/schedule.php`).then(r => r.json()),
-      fetch(`${API_URL}/locations.php?type=stage`).then(r => r.json()),
+      fetch(`${API_URL}/schedule.php`, { signal }).then(r => r.json()),
+      fetch(`${API_URL}/locations.php?type=stage`, { signal }).then(r => r.json()),
     ])
       .then(([scheduleData, stageData]) => {
         const apiArtists = scheduleData.map(slot => {
@@ -224,7 +225,9 @@ export default function MapPage() {
         });
         setArtists(apiArtists);
       })
-      .catch(() => {});
+      .catch(() => {
+        setArtists(ARTISTS);
+      });
   }, []);
 
   const gmapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${FESTIVAL_LAT},${FESTIVAL_LNG}`;
