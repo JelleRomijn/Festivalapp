@@ -4,7 +4,9 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useApp } from '@/components/AppContext';
 import NotificationButton from '@/components/NotificationButton';
-import { QRCodeSVG } from 'qrcode.react';
+import dynamic from 'next/dynamic';
+
+const QRCodeSVG = dynamic(() => import('qrcode.react').then(m => m.QRCodeSVG), { ssr: false });
 
 // Festivaldatum: 15 augustus 2026 12:00
 const FESTIVAL_DATE = new Date('2026-08-15T12:00:00');
@@ -45,6 +47,8 @@ const TEXTS = {
     galleryLabel: 'Atmosphere',
   },
 };
+
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || '';
 
 const GALLERY_PHOTOS = [
   { src: '/festival1.webp', alt: 'Crowd inside the main tent' },
@@ -159,11 +163,11 @@ export default function HomePage() {
         <p style={{ fontWeight: 700, fontSize: '1rem', marginBottom: 12 }}>{t.galleryLabel}</p>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 20 }}>
           <div style={{ gridColumn: '1 / -1', borderRadius: 'var(--radius)', overflow: 'hidden', height: 180 }}>
-            <img src={`${process.env.NEXT_PUBLIC_BASE_PATH}${GALLERY_PHOTOS[0].src}`} alt={GALLERY_PHOTOS[0].alt} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            <img src={`${BASE_PATH}${GALLERY_PHOTOS[0].src}`} alt={GALLERY_PHOTOS[0].alt} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
           </div>
           {GALLERY_PHOTOS.slice(1).map(photo => (
             <div key={photo.src} style={{ borderRadius: 'var(--radius)', overflow: 'hidden', height: 120 }}>
-              <img src={`${process.env.NEXT_PUBLIC_BASE_PATH}${photo.src}`} alt={photo.alt} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+              <img src={`${BASE_PATH}${photo.src}`} alt={photo.alt} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             </div>
           ))}
         </div>

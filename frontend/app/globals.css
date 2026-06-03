@@ -744,6 +744,19 @@ a {
   border-color: var(--color-primary);
 }
 
+.accordion-item--gold {
+  border-color: #c9a227;
+}
+
+.accordion-item--gold .accordion-chevron {
+  stroke: #c9a227;
+}
+
+.accordion-item--gold.accordion-item--open {
+  border-color: #c9a227;
+  background: linear-gradient(135deg, var(--bg-card), color-mix(in srgb, #c9a227 8%, var(--bg-card)));
+}
+
 .accordion-trigger {
   width: 100%;
   display: flex;
@@ -760,6 +773,18 @@ a {
   text-align: left;
   line-height: 1.3;
   -webkit-tap-highlight-color: transparent;
+}
+
+.accordion-trigger__inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.accordion-icon {
+  font-size: 1.15rem;
+  line-height: 1;
+  flex-shrink: 0;
 }
 
 .accordion-chevron {
@@ -792,11 +817,42 @@ a {
   overflow: hidden;
 }
 
-.accordion-text {
+.accordion-content {
   padding: 0 16px 16px;
+  border-top: 1px solid var(--border);
+}
+
+.accordion-text {
   font-size: 0.9rem;
   color: var(--text-muted);
   line-height: 1.7;
+  white-space: pre-line;
+  margin: 0;
+}
+
+.accordion-text--intro {
+  padding-top: 14px;
+}
+
+.accordion-sub {
+  padding-top: 14px;
+}
+
+.accordion-sub + .accordion-sub {
+  border-top: 1px solid var(--border);
+}
+
+.accordion-sub__title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-primary);
+  margin-bottom: 6px;
+}
+
+.accordion-item--gold .accordion-sub__title {
+  color: #c9a227;
 }
 
 /* === QR CODE SECTIE === */

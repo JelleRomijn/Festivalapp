@@ -33,6 +33,8 @@ export const viewport = {
   ],
 };
 
+const BASE = process.env.NEXT_PUBLIC_BASE_PATH || '';
+
 export default function RootLayout({ children }) {
   return (
     <html lang="nl" data-theme="dark" suppressHydrationWarning>
@@ -43,8 +45,8 @@ export default function RootLayout({ children }) {
             __html: `(function(){try{var t=localStorage.getItem('hartjeu-theme')||((window.matchMedia('(prefers-color-scheme:dark)').matches)?'dark':'light');var l=localStorage.getItem('hartjeu-lang')||'nl';document.documentElement.setAttribute('data-theme',t);document.documentElement.setAttribute('lang',l);}catch(e){}})();`,
           }}
         />
-        <link rel="manifest" href={`${process.env.NEXT_PUBLIC_BASE_PATH}/manifest.webmanifest`} />
-        <link rel="apple-touch-icon" href={`${process.env.NEXT_PUBLIC_BASE_PATH}/icons/apple-touch-icon.png`} />
+        <link rel="manifest" href={`${BASE}/manifest.webmanifest`} />
+        <link rel="apple-touch-icon" href={`${BASE}/icons/apple-touch-icon.png`} />
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body>
@@ -53,8 +55,8 @@ export default function RootLayout({ children }) {
           {/* Vaste header met logo en controls */}
           <header className="app-header">
             <div className="app-header__logo">
-              <img src={`${process.env.NEXT_PUBLIC_BASE_PATH}/logoWhite.webp`} alt="HartjeU Festival" className="logo-light" fetchpriority="high" />
-              <img src={`${process.env.NEXT_PUBLIC_BASE_PATH}/logoBlack.webp`} alt="HartjeU Festival" className="logo-dark" fetchpriority="high" />
+              <img src={`${BASE}/logoWhite.webp`} alt="HartjeU Festival" className="logo-light" fetchpriority="high" />
+              <img src={`${BASE}/logoBlack.webp`} alt="HartjeU Festival" className="logo-dark" fetchpriority="high" />
             </div>
             <div className="app-header__controls">
               <ThemeToggle />
