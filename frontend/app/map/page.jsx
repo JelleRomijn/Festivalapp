@@ -549,9 +549,11 @@ const OVERLAY_BTN = {
 function ExpandedMap({ basePath, t, stages, userPosition, onStageClick, onClose }) {
   const containerRef = useRef(null);
   const stateRef = useRef({ scale: 1, tx: 0, ty: 0, gesture: null });
+  const followRef = useRef(!!userPosition);
+  const [following, setFollowing] = useState(!!userPosition);
   const [, forceRender] = useState(0);
 
-  function commit(scale, tx, ty) {
+  function commitRaw(scale, tx, ty) {
     const s = Math.min(5, Math.max(1, scale));
     const el = containerRef.current;
     if (el) {
@@ -564,6 +566,40 @@ function ExpandedMap({ basePath, t, stages, userPosition, onStageClick, onClose 
     stateRef.current = { ...stateRef.current, scale: s, tx, ty };
     forceRender(n => n + 1);
   }
+
+  function commit(scale, tx, ty) {
+    if (followRef.current) {
+      followRef.current = false;
+      setFollowing(false);
+    }
+    commitRaw(scale, tx, ty);
+  }
+
+  function centerOnUser(pos) {
+    const el = containerRef.current;
+    if (!pos || !el) return;
+    const cw = el.clientWidth;
+    const ch = el.clientHeight;
+    const ratio = 2330.58 / 1353.19;
+    const { scale } = stateRef.current;
+    const { x, y } = gpsToMapPercent(pos.lat, pos.lng);
+    const px = (x / 100) * cw;
+    const py = (y / 100) * (cw / ratio);
+    commitRaw(scale, cw / 2 - px * scale, ch / 2 - py * scale);
+  }
+
+  function enableFollow() {
+    followRef.current = true;
+    setFollowing(true);
+    centerOnUser(userPosition);
+  }
+
+  useEffect(() => {
+    if (followRef.current && userPosition) {
+      centerOnUser(userPosition);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userPosition]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -578,6 +614,10 @@ function ExpandedMap({ basePath, t, stages, userPosition, onStageClick, onClose 
 
     function onTouchStart(e) {
       e.preventDefault();
+      if (followRef.current) {
+        followRef.current = false;
+        setFollowing(false);
+      }
       const { scale, tx, ty } = stateRef.current;
       const rect = el.getBoundingClientRect();
       if (e.touches.length >= 2) {
@@ -661,6 +701,22 @@ function ExpandedMap({ basePath, t, stages, userPosition, onStageClick, onClose 
             {Math.round(scale * 100)}%
           </button>
           <button style={OVERLAY_BTN} onClick={() => { const {scale:s,tx,ty}=stateRef.current; commit(s+0.25,tx,ty); }}>+</button>
+          {userPosition && (
+            <button
+              onClick={enableFollow}
+              style={{
+                ...OVERLAY_BTN,
+                background: following ? 'rgba(59,130,246,0.7)' : 'rgba(255,255,255,0.15)',
+                border: following ? '1px solid rgba(59,130,246,0.9)' : '1px solid rgba(255,255,255,0.25)',
+              }}
+              title="Volg mijn locatie"
+            >
+              <svg viewBox="0 0 24 24" style={{ width: 16, height: 16, stroke: 'currentColor', fill: 'none', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' }}>
+                <circle cx="12" cy="12" r="3" />
+                <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+              </svg>
+            </button>
+          )}
         </div>
         <button
           onClick={onClose}
