@@ -6,6 +6,20 @@ import { useApp } from '@/components/AppContext';
 const FESTIVAL_LAT = 52.067;
 const FESTIVAL_LNG = 5.0831;
 
+// GPS-grenzen van de festivalkaart — aanpassen als de dot niet klopt op het terrein
+const MAP_BOUNDS = {
+  north: 52.0715,
+  south: 52.0628,
+  west:  5.0748,
+  east:  5.0930,
+};
+
+function gpsToMapPercent(lat, lng) {
+  const x = ((lng - MAP_BOUNDS.west) / (MAP_BOUNDS.east - MAP_BOUNDS.west)) * 100;
+  const y = ((MAP_BOUNDS.north - lat) / (MAP_BOUNDS.north - MAP_BOUNDS.south)) * 100;
+  return { x: Math.min(100, Math.max(0, x)), y: Math.min(100, Math.max(0, y)) };
+}
+
 const TEXTS = {
   nl: {
     title: 'Festivalkaart',
@@ -193,6 +207,8 @@ export default function MapPage() {
 
   const [gpsState, setGpsState] = useState('idle');
   const [distance, setDistance] = useState(null);
+  const [userPosition, setUserPosition] = useState(null);
+  const watchIdRef = useRef(null);
   const [selectedStage, setSelectedStage] = useState(null);
   const [selectedArtist, setSelectedArtist] = useState(null);
   const [mapExpanded, setMapExpanded] = useState(false);
@@ -240,16 +256,27 @@ export default function MapPage() {
     }
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+      }
+    };
+  }, []);
+
   function requestGps() {
     if (!('geolocation' in navigator)) {
       setGpsState('unsupported');
       return;
     }
+    if (watchIdRef.current !== null) return;
     setGpsState('loading');
-    navigator.geolocation.getCurrentPosition(
+    watchIdRef.current = navigator.geolocation.watchPosition(
       pos => {
-        const d = haversineDistance(pos.coords.latitude, pos.coords.longitude, FESTIVAL_LAT, FESTIVAL_LNG);
+        const { latitude, longitude } = pos.coords;
+        const d = haversineDistance(latitude, longitude, FESTIVAL_LAT, FESTIVAL_LNG);
         setDistance(d);
+        setUserPosition({ lat: latitude, lng: longitude });
         setGpsState('active');
       },
       () => setGpsState('denied'),
@@ -347,6 +374,18 @@ export default function MapPage() {
             </button>
           ))}
 
+          {/* Gebruikerslocatie dot */}
+          {userPosition && (() => {
+            const { x, y } = gpsToMapPercent(userPosition.lat, userPosition.lng);
+            return (
+              <div
+                className="user-location-dot"
+                style={{ left: `${x}%`, top: `${y}%` }}
+                title="Jouw locatie"
+              />
+            );
+          })()}
+
           {/* Vergroot-icoon hint */}
           <div style={{
             position: 'absolute', bottom: 8, right: 8,
@@ -384,6 +423,7 @@ export default function MapPage() {
             basePath={BASE_PATH}
             t={t}
             stages={STAGES}
+            userPosition={userPosition}
             onStageClick={stage => { setMapExpanded(false); setSelectedStage(stage); }}
             onClose={() => setMapExpanded(false)}
           />
@@ -506,7 +546,7 @@ const OVERLAY_BTN = {
   display: 'flex', alignItems: 'center', justifyContent: 'center',
 };
 
-function ExpandedMap({ basePath, t, stages, onStageClick, onClose }) {
+function ExpandedMap({ basePath, t, stages, userPosition, onStageClick, onClose }) {
   const containerRef = useRef(null);
   const stateRef = useRef({ scale: 1, tx: 0, ty: 0, gesture: null });
   const [, forceRender] = useState(0);
@@ -658,6 +698,20 @@ function ExpandedMap({ basePath, t, stages, onStageClick, onClose }) {
               <span className="stage-marker__dot" style={{ background: stage.color }} />
             </button>
           ))}
+
+          {userPosition && (() => {
+            const { x, y } = gpsToMapPercent(userPosition.lat, userPosition.lng);
+            return (
+              <div
+                className="user-location-dot"
+                style={{
+                  left: `${x}%`, top: `${y}%`,
+                  transform: `translate(-50%, -50%) scale(${1 / scale})`,
+                }}
+                title="Jouw locatie"
+              />
+            );
+          })()}
         </div>
 
         {/* Legenda */}

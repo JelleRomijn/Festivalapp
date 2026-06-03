@@ -529,6 +529,27 @@ a {
   100% { transform: scale(1.8); opacity: 0; }
 }
 
+/* Gebruikerslocatie dot op de kaart */
+.user-location-dot {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #2979FF;
+  border: 3px solid white;
+  box-shadow: 0 0 0 4px rgba(41,121,255,0.3), 0 2px 8px rgba(0,0,0,0.35);
+  z-index: 10;
+  animation: user-pulse 2s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes user-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(41,121,255,0.5), 0 2px 8px rgba(0,0,0,0.35); }
+  70%  { box-shadow: 0 0 0 10px rgba(41,121,255,0), 0 2px 8px rgba(0,0,0,0.35); }
+  100% { box-shadow: 0 0 0 0 rgba(41,121,255,0), 0 2px 8px rgba(0,0,0,0.35); }
+}
+
 /* === SCHEDULE PAGE === */
 .schedule-day-tabs {
   display: flex;
