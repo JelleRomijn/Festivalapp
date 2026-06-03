@@ -3,15 +3,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { useApp } from '@/components/AppContext';
 
-const FESTIVAL_LAT = 52.067;
-const FESTIVAL_LNG = 5.0831;
+const FESTIVAL_LAT = 52.07695091340382;
+const FESTIVAL_LNG = 5.106091780276837;
 
 // GPS-grenzen van de festivalkaart — aanpassen als de dot niet klopt op het terrein
 const MAP_BOUNDS = {
-  north: 52.0715,
-  south: 52.0628,
-  west:  5.0748,
-  east:  5.0930,
+  north: 52.0813,
+  south: 52.0726,
+  west:  5.0970,
+  east:  5.1152,
 };
 
 function gpsToMapPercent(lat, lng) {
