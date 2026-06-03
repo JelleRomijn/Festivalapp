@@ -67,11 +67,10 @@ export default function InfoPage() {
   const { language } = useApp();
   const [sections, setSections] = useState(PLACEHOLDER[language]);
   const [loading, setLoading] = useState(false);
+  const [openKey, setOpenKey] = useState(null);
 
-  // Haal data op uit de PHP API zodra die beschikbaar is
   useEffect(() => {
     if (!API_URL) {
-      // Geen API ingesteld: gebruik placeholder data
       setSections(PLACEHOLDER[language]);
       return;
     }
@@ -83,6 +82,10 @@ export default function InfoPage() {
       .catch(() => setSections(PLACEHOLDER[language]))
       .finally(() => setLoading(false));
   }, [language]);
+
+  function toggle(key) {
+    setOpenKey(prev => (prev === key ? null : key));
+  }
 
   return (
     <div className="page">
@@ -102,12 +105,32 @@ export default function InfoPage() {
           </p>
         )}
 
-        {sections.map(section => (
-          <div key={section.key} className="card info-section">
-            <h2 className="info-section__title">{section.title}</h2>
-            <p className="info-section__body">{section.body}</p>
-          </div>
-        ))}
+        <div className="accordion">
+          {sections.map(section => {
+            const isOpen = openKey === section.key;
+            return (
+              <div key={section.key} className={`accordion-item${isOpen ? ' accordion-item--open' : ''}`}>
+                <button
+                  className="accordion-trigger"
+                  onClick={() => toggle(section.key)}
+                  aria-expanded={isOpen}
+                >
+                  <span>{section.title}</span>
+                  <svg
+                    className="accordion-chevron"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </button>
+                <div className="accordion-body" aria-hidden={!isOpen}>
+                  <p className="accordion-text">{section.body}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

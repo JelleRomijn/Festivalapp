@@ -352,7 +352,7 @@ export default function MapPage() {
           title="Klik om te vergroten"
         >
           <img
-            src={`${BASE_PATH}/kaart_festival_markers (1).svg`}
+            src={`${BASE_PATH}/kaart_festival_markers.svg`}
             alt={t.title}
             loading="lazy"
           />
@@ -735,7 +735,7 @@ function ExpandedMap({ basePath, t, stages, userPosition, onStageClick, onClose 
           transform: `translate(${tx}px,${ty}px) scale(${scale})`,
         }}>
           <img
-            src={`${basePath}/kaart_festival_markers (1).svg`}
+            src={`${basePath}/kaart_festival_markers.svg`}
             alt={t.title}
             draggable={false}
             style={{ width: '100%', height: 'auto', display: 'block', userSelect: 'none', pointerEvents: 'none' }}
@@ -772,7 +772,7 @@ function ExpandedMap({ basePath, t, stages, userPosition, onStageClick, onClose 
 
         {/* Legenda */}
         <img
-          src={`${basePath}/legenda (1).svg`}
+          src={`${basePath}/legenda.svg`}
           alt="Legenda"
           style={{
             position: 'absolute', bottom: 10, right: 10, width: 90, height: 'auto',

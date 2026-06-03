@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useApp } from '@/components/AppContext';
 import NotificationButton from '@/components/NotificationButton';
+import { QRCodeSVG } from 'qrcode.react';
 
 // Festivaldatum: 15 augustus 2026 12:00
 const FESTIVAL_DATE = new Date('2026-08-15T12:00:00');
@@ -103,6 +104,11 @@ export default function HomePage() {
   const { language } = useApp();
   const t = TEXTS[language];
   const timeLeft = useCountdown(FESTIVAL_DATE);
+  const [appUrl, setAppUrl] = useState('');
+
+  useEffect(() => {
+    setAppUrl(window.location.origin);
+  }, []);
 
   return (
     <div className="page">
@@ -161,6 +167,23 @@ export default function HomePage() {
             </div>
           ))}
         </div>
+
+        {/* QR code — installeer de webapp */}
+        {appUrl && (
+          <div className="qr-section">
+            <p className="qr-section__title">
+              {language === 'nl' ? 'Installeer de app' : 'Install the app'}
+            </p>
+            <p className="qr-section__sub">
+              {language === 'nl'
+                ? 'Scan de QR-code om de webapp op je telefoon te openen'
+                : 'Scan the QR code to open the web app on your phone'}
+            </p>
+            <div className="qr-section__code">
+              <QRCodeSVG value={appUrl} size={140} />
+            </div>
+          </div>
+        )}
 
         {/* Meldingenknop */}
         <NotificationButton />
