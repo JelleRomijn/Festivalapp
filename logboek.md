@@ -761,9 +761,3 @@ push het
 
 ---
 
-### Prompt 80
-kan je bij elke prompt zetten of ze hulpzaam waren je mag zelf oordelen
-
-**Beoordeling:** Hulpzaam — duidelijke opdracht met een nuttig doel (reflectie op promptkwaliteit).
-
-**Resultaat:** Beoordeling toegevoegd bij elke prompt in `logboek.md`.
