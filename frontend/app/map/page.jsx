@@ -6,7 +6,6 @@ import { useApp } from '@/components/AppContext';
 const FESTIVAL_LAT = 52.07695091340382;
 const FESTIVAL_LNG = 5.106091780276837;
 
-// GPS-grenzen van de festivalkaart — aanpassen als de dot niet klopt op het terrein
 const MAP_BOUNDS = {
   north: 52.0813,
   south: 52.0726,
@@ -19,6 +18,8 @@ function gpsToMapPercent(lat, lng) {
   const y = ((MAP_BOUNDS.north - lat) / (MAP_BOUNDS.north - MAP_BOUNDS.south)) * 100;
   return { x: Math.min(100, Math.max(0, x)), y: Math.min(100, Math.max(0, y)) };
 }
+
+const PIN_COLORS = ['#F97316', '#EAB308', '#22C55E', '#06B6D4', '#3B82F6', '#A855F7', '#EC4899', '#F9FAFB'];
 
 const TEXTS = {
   nl: {
@@ -38,6 +39,15 @@ const TEXTS = {
     watchVideo: 'Bekijk video',
     actsAt: 'Acts op',
     noActs: 'Nog geen acts bekend',
+    addPin: 'Pin toevoegen',
+    myPins: 'Mijn pins',
+    pinNamePlaceholder: 'bijv. Auto, Toilet, Vrienden',
+    pinSave: 'Opslaan',
+    pinCancel: 'Annuleren',
+    tapToPlace: 'Tik op de kaart om een pin te plaatsen',
+    addPinMode: 'Pin plaatsen',
+    deletePin: 'Verwijder pin',
+    stopAdding: 'Klaar',
   },
   en: {
     title: 'Festival map',
@@ -56,6 +66,15 @@ const TEXTS = {
     watchVideo: 'Watch video',
     actsAt: 'Acts at',
     noActs: 'No acts announced yet',
+    addPin: 'Add pin',
+    myPins: 'My pins',
+    pinNamePlaceholder: 'e.g. Car, Toilet, Friends',
+    pinSave: 'Save',
+    pinCancel: 'Cancel',
+    tapToPlace: 'Tap on the map to place a pin',
+    addPinMode: 'Place pin',
+    deletePin: 'Delete pin',
+    stopAdding: 'Done',
   },
 };
 
@@ -172,13 +191,11 @@ const ARTISTS = [
   },
 ];
 
-// Stage marker positions as percentages of the map image (x: left%, y: top%)
-// Adjust these values to match the actual stage positions on the SVG map
 const STAGES = [
-  { id: 1, name: 'Ponton',    color: '#E85D4A', x: 21.3, y: 62.8 },
-  { id: 2, name: 'The Lake',  color: '#2E7D8B', x: 53.9, y: 45.5 },
-  { id: 3, name: 'The Club',  color: '#7B2D8B', x: 69.3, y: 39.1 },
-  { id: 4, name: 'Hanggar',   color: '#2E7D52', x: 90.2, y: 17.1 },
+  { id: 1, name: 'Ponton',   color: '#E85D4A', x: 21.3, y: 62.8 },
+  { id: 2, name: 'The Lake', color: '#2E7D8B', x: 53.9, y: 45.5 },
+  { id: 3, name: 'The Club', color: '#7B2D8B', x: 69.3, y: 39.1 },
+  { id: 4, name: 'Hanggar',  color: '#2E7D52', x: 90.2, y: 17.1 },
 ];
 
 function haversineDistance(lat1, lng1, lat2, lng2) {
@@ -201,6 +218,63 @@ function formatDistance(meters) {
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
 const API_URL   = process.env.NEXT_PUBLIC_API_URL;
 
+function CustomMarkerPin({ marker, scale = 1, onClick }) {
+  const isLight = marker.color === '#F9FAFB' || marker.color === '#FFFFFF';
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: `${marker.x}%`,
+        top: `${marker.y}%`,
+        transform: `translate(-50%, -100%) scale(${1 / scale})`,
+        transformOrigin: 'bottom center',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 2,
+        cursor: onClick ? 'pointer' : 'default',
+        pointerEvents: onClick ? 'auto' : 'none',
+        zIndex: 5,
+      }}
+      onClick={onClick}
+    >
+      <div style={{
+        background: 'rgba(0,0,0,0.82)',
+        color: 'white',
+        fontSize: '0.6rem',
+        fontWeight: 700,
+        padding: '2px 7px',
+        borderRadius: 4,
+        whiteSpace: 'nowrap',
+        maxWidth: 88,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        lineHeight: 1.5,
+        boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
+      }}>
+        {marker.label}
+      </div>
+      <div style={{
+        width: 12,
+        height: 12,
+        borderRadius: '50%',
+        background: marker.color,
+        border: isLight ? '2px solid rgba(0,0,0,0.3)' : '2px solid white',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.5)',
+        flexShrink: 0,
+      }} />
+      <div style={{
+        width: 2,
+        height: 6,
+        background: marker.color,
+        borderRadius: '0 0 2px 2px',
+        flexShrink: 0,
+        opacity: 0.8,
+      }} />
+    </div>
+  );
+}
+
 export default function MapPage() {
   const { language } = useApp();
   const t = TEXTS[language];
@@ -213,6 +287,48 @@ export default function MapPage() {
   const [selectedArtist, setSelectedArtist] = useState(null);
   const [mapExpanded, setMapExpanded] = useState(false);
   const [artists, setArtists] = useState(ARTISTS);
+
+  // Custom pins
+  const [customMarkers, setCustomMarkers] = useState(() => {
+    if (typeof window === 'undefined') return [];
+    try { return JSON.parse(localStorage.getItem('hartjeu-pins') || '[]'); }
+    catch { return []; }
+  });
+  const [openMapInAddMode, setOpenMapInAddMode] = useState(false);
+  const [pendingMapPos, setPendingMapPos] = useState(null);
+  const [pinLabel, setPinLabel] = useState('');
+  const [pinColor, setPinColor] = useState(PIN_COLORS[0]);
+
+  function saveCustomMarkers(markers) {
+    setCustomMarkers(markers);
+    try { localStorage.setItem('hartjeu-pins', JSON.stringify(markers)); } catch {}
+  }
+
+  function handleMapTap(x, y) {
+    setPendingMapPos({ x, y });
+    setPinLabel('');
+    setPinColor(PIN_COLORS[0]);
+  }
+
+  function confirmAddPin() {
+    if (!pendingMapPos || !pinLabel.trim()) return;
+    saveCustomMarkers([...customMarkers, {
+      id: Date.now(),
+      x: pendingMapPos.x,
+      y: pendingMapPos.y,
+      label: pinLabel.trim(),
+      color: pinColor,
+    }]);
+    setPendingMapPos(null);
+  }
+
+  function cancelAddPin() {
+    setPendingMapPos(null);
+  }
+
+  function deleteCustomMarker(id) {
+    saveCustomMarkers(customMarkers.filter(m => m.id !== id));
+  }
 
   useEffect(() => {
     if (!API_URL) return;
@@ -305,6 +421,7 @@ export default function MapPage() {
   }
 
   const sheetOpen = selectedStage !== null;
+  const pinDialogOpen = pendingMapPos !== null;
 
   return (
     <div className="page">
@@ -345,19 +462,18 @@ export default function MapPage() {
           </p>
         )}
 
-        {/* SVG map with stage markers overlay */}
+        {/* Small map */}
         <div
           className="map-container"
           onClick={() => setMapExpanded(true)}
           title="Klik om te vergroten"
         >
           <img
-            src={`${BASE_PATH}/kaart_festival_markers.svg`}
+            src={`${BASE_PATH}/kaart_festival_no_markers.svg`}
             alt={t.title}
             loading="lazy"
           />
 
-          {/* Interactieve podiummarkers */}
           {STAGES.map(stage => (
             <button
               key={stage.id}
@@ -367,14 +483,14 @@ export default function MapPage() {
               title={stage.name}
             >
               <span className="stage-marker__ring" />
-              <span
-                className="stage-marker__dot"
-                style={{ background: stage.color }}
-              />
+              <span className="stage-marker__dot" style={{ background: stage.color }} />
             </button>
           ))}
 
-          {/* Gebruikerslocatie dot */}
+          {customMarkers.map(marker => (
+            <CustomMarkerPin key={marker.id} marker={marker} />
+          ))}
+
           {userPosition && (() => {
             const { x, y } = gpsToMapPercent(userPosition.lat, userPosition.lng);
             return (
@@ -386,7 +502,6 @@ export default function MapPage() {
             );
           })()}
 
-          {/* Vergroot-icoon hint */}
           <div style={{
             position: 'absolute', bottom: 8, right: 8,
             background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)',
@@ -417,6 +532,66 @@ export default function MapPage() {
           ))}
         </div>
 
+        {/* Mijn pins legenda */}
+        {customMarkers.length > 0 && (
+          <div style={{ marginTop: 14 }}>
+            <p style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: 'var(--text-muted)', marginBottom: 8 }}>
+              {t.myPins}
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {customMarkers.map(marker => {
+                const isLight = marker.color === '#F9FAFB' || marker.color === '#FFFFFF';
+                return (
+                  <div
+                    key={marker.id}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      background: 'var(--bg-card)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 20,
+                      padding: '5px 8px 5px 10px',
+                      fontSize: '0.8rem', fontWeight: 600,
+                    }}
+                  >
+                    <span style={{
+                      width: 8, height: 8, borderRadius: '50%', background: marker.color,
+                      flexShrink: 0,
+                      border: isLight ? '1px solid var(--border)' : 'none',
+                    }} />
+                    <span style={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {marker.label}
+                    </span>
+                    <button
+                      onClick={() => deleteCustomMarker(marker.id)}
+                      style={{
+                        marginLeft: 2, color: 'var(--text-muted)',
+                        background: 'none', border: 'none',
+                        cursor: 'pointer', padding: '0 2px',
+                        lineHeight: 1, fontSize: '1.1rem',
+                        display: 'flex', alignItems: 'center',
+                      }}
+                      aria-label={`${marker.label} verwijderen`}
+                    >×</button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Pin toevoegen knop */}
+        <button
+          className="btn btn-ghost"
+          style={{ width: '100%', marginTop: 12, gap: 8, justifyContent: 'center' }}
+          onClick={() => { setOpenMapInAddMode(true); setMapExpanded(true); }}
+        >
+          <svg viewBox="0 0 24 24" style={{ width: 16, height: 16, stroke: 'currentColor', fill: 'none', strokeWidth: 2.5, strokeLinecap: 'round' }}>
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          {t.addPin}
+        </button>
+
         {/* Expanded kaart overlay */}
         {mapExpanded && (
           <ExpandedMap
@@ -424,8 +599,12 @@ export default function MapPage() {
             t={t}
             stages={STAGES}
             userPosition={userPosition}
-            onStageClick={stage => { setMapExpanded(false); setSelectedStage(stage); }}
-            onClose={() => setMapExpanded(false)}
+            customMarkers={customMarkers}
+            openInAddMode={openMapInAddMode}
+            onMapTap={handleMapTap}
+            onDeleteCustomMarker={deleteCustomMarker}
+            onStageClick={stage => { setMapExpanded(false); setOpenMapInAddMode(false); setSelectedStage(stage); }}
+            onClose={() => { setMapExpanded(false); setOpenMapInAddMode(false); }}
           />
         )}
       </div>
@@ -434,41 +613,29 @@ export default function MapPage() {
       {sheetOpen && (
         <div
           onClick={closeSheet}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'var(--overlay)',
-            zIndex: 200,
-          }}
+          style={{ position: 'fixed', inset: 0, background: 'var(--overlay)', zIndex: 200 }}
         />
       )}
 
-      {/* Bottom sheet */}
+      {/* Bottom sheet podium */}
       <div
         style={{
-          position: 'fixed',
-          left: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 201,
+          position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 201,
           background: 'var(--bg-card)',
           borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
           boxShadow: '0 -4px 32px rgba(0,0,0,0.2)',
-          maxHeight: '80dvh',
-          overflowY: 'auto',
+          maxHeight: '80dvh', overflowY: 'auto',
           transform: sheetOpen ? 'translateY(0)' : 'translateY(110%)',
           transition: 'transform 300ms cubic-bezier(0.32,0.72,0,1)',
           paddingBottom: 'calc(var(--safe-bottom) + 16px)',
           WebkitOverflowScrolling: 'touch',
         }}
       >
-        {/* Sheet handle */}
         <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12, paddingBottom: 4 }}>
           <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)' }} />
         </div>
 
         {selectedArtist ? (
-          /* Artist detail view */
           <ArtistDetail
             artist={selectedArtist}
             language={language}
@@ -476,7 +643,6 @@ export default function MapPage() {
             onBack={goBackToStage}
           />
         ) : selectedStage ? (
-          /* Stage acts list */
           <div style={{ padding: '8px 20px 20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -497,35 +663,23 @@ export default function MapPage() {
               <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{t.noActs}</p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {/* Day 1 */}
                 {stageArtists.filter(a => a.day === 1).length > 0 && (
                   <>
                     <p style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: 'var(--text-muted)', marginTop: 4 }}>
                       {t.day1}
                     </p>
                     {stageArtists.filter(a => a.day === 1).map(artist => (
-                      <ArtistRow
-                        key={artist.name}
-                        artist={artist}
-                        stageColor={selectedStage.color}
-                        onClick={() => setSelectedArtist(artist)}
-                      />
+                      <ArtistRow key={artist.name} artist={artist} stageColor={selectedStage.color} onClick={() => setSelectedArtist(artist)} />
                     ))}
                   </>
                 )}
-                {/* Day 2 */}
                 {stageArtists.filter(a => a.day === 2).length > 0 && (
                   <>
                     <p style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: 'var(--text-muted)', marginTop: 8 }}>
                       {t.day2}
                     </p>
                     {stageArtists.filter(a => a.day === 2).map(artist => (
-                      <ArtistRow
-                        key={artist.name}
-                        artist={artist}
-                        stageColor={selectedStage.color}
-                        onClick={() => setSelectedArtist(artist)}
-                      />
+                      <ArtistRow key={artist.name} artist={artist} stageColor={selectedStage.color} onClick={() => setSelectedArtist(artist)} />
                     ))}
                   </>
                 )}
@@ -533,6 +687,107 @@ export default function MapPage() {
             )}
           </div>
         ) : null}
+      </div>
+
+      {/* Pin toevoegen dialog overlay */}
+      {pinDialogOpen && (
+        <div
+          onClick={cancelAddPin}
+          style={{ position: 'fixed', inset: 0, background: 'var(--overlay)', zIndex: 500 }}
+        />
+      )}
+
+      {/* Pin toevoegen dialog */}
+      <div
+        style={{
+          position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 501,
+          background: 'var(--bg-card)',
+          borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
+          boxShadow: '0 -4px 32px rgba(0,0,0,0.25)',
+          transform: pinDialogOpen ? 'translateY(0)' : 'translateY(110%)',
+          transition: 'transform 300ms cubic-bezier(0.32,0.72,0,1)',
+          padding: '0 20px calc(var(--safe-bottom) + 24px)',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 16px' }}>
+          <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)' }} />
+        </div>
+        <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: 16 }}>{t.addPin}</h3>
+
+        <input
+          type="text"
+          value={pinLabel}
+          onChange={e => setPinLabel(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && confirmAddPin()}
+          placeholder={t.pinNamePlaceholder}
+          maxLength={30}
+          style={{
+            width: '100%', padding: '12px 14px',
+            borderRadius: 'var(--radius-sm)',
+            border: '1px solid var(--border)',
+            background: 'var(--bg)',
+            color: 'var(--text)',
+            fontSize: '1rem',
+            boxSizing: 'border-box',
+            marginBottom: 16,
+            outline: 'none',
+          }}
+          autoFocus={pinDialogOpen}
+        />
+
+        {/* Kleur kiezer */}
+        <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
+          {PIN_COLORS.map(c => {
+            const isLight = c === '#F9FAFB' || c === '#FFFFFF';
+            const selected = pinColor === c;
+            return (
+              <button
+                key={c}
+                onClick={() => setPinColor(c)}
+                style={{
+                  width: 34, height: 34, borderRadius: '50%',
+                  background: c,
+                  border: selected
+                    ? `3px solid var(--text)`
+                    : isLight
+                      ? '2px solid var(--border)'
+                      : '2px solid transparent',
+                  cursor: 'pointer', padding: 0, flexShrink: 0,
+                  boxShadow: selected ? '0 0 0 2px var(--bg-card), 0 0 0 4px var(--text)' : '0 1px 3px rgba(0,0,0,0.2)',
+                  transition: 'box-shadow 150ms',
+                }}
+                aria-label={c}
+              />
+            );
+          })}
+        </div>
+
+        {/* Preview */}
+        {pinLabel.trim() && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, padding: '8px 12px', background: 'var(--bg)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+            <div style={{ width: 10, height: 10, borderRadius: '50%', background: pinColor, flexShrink: 0, border: '1.5px solid rgba(0,0,0,0.2)' }} />
+            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)' }}>Voorbeeld:</span>
+            <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>{pinLabel.trim()}</span>
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button
+            className="btn btn-ghost"
+            style={{ flex: 1 }}
+            onClick={cancelAddPin}
+          >
+            {t.pinCancel}
+          </button>
+          <button
+            className="btn btn-primary"
+            style={{ flex: 2, opacity: pinLabel.trim() ? 1 : 0.5 }}
+            onClick={confirmAddPin}
+            disabled={!pinLabel.trim()}
+          >
+            {t.pinSave}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -546,12 +801,21 @@ const OVERLAY_BTN = {
   display: 'flex', alignItems: 'center', justifyContent: 'center',
 };
 
-function ExpandedMap({ basePath, t, stages, userPosition, onStageClick, onClose }) {
+function ExpandedMap({ basePath, t, stages, userPosition, customMarkers, openInAddMode, onMapTap, onDeleteCustomMarker, onStageClick, onClose }) {
   const containerRef = useRef(null);
   const stateRef = useRef({ scale: 1, tx: 0, ty: 0, gesture: null });
   const followRef = useRef(!!userPosition);
   const [following, setFollowing] = useState(!!userPosition);
   const [, forceRender] = useState(0);
+
+  const [addMode, setAddMode] = useState(!!openInAddMode);
+  const addModeRef = useRef(!!openInAddMode);
+  useEffect(() => { addModeRef.current = addMode; }, [addMode]);
+
+  const [selectedPinId, setSelectedPinId] = useState(null);
+
+  const onMapTapRef = useRef(onMapTap);
+  useEffect(() => { onMapTapRef.current = onMapTap; }, [onMapTap]);
 
   function commitRaw(scale, tx, ty) {
     const s = Math.min(5, Math.max(1, scale));
@@ -613,6 +877,11 @@ function ExpandedMap({ basePath, t, stages, userPosition, onStageClick, onClose 
     }
 
     function onTouchStart(e) {
+      // Laat klikbare kinderen (knoppen) gewoon werken
+      if (e.target.closest('button') || e.target.closest('[data-clickable]')) {
+        stateRef.current.gesture = { type: 'button' };
+        return;
+      }
       e.preventDefault();
       if (followRef.current) {
         followRef.current = false;
@@ -637,9 +906,9 @@ function ExpandedMap({ basePath, t, stages, userPosition, onStageClick, onClose 
     }
 
     function onTouchMove(e) {
-      e.preventDefault();
       const g = stateRef.current.gesture;
-      if (!g) return;
+      if (!g || g.type === 'button') return;
+      e.preventDefault();
       const rect = el.getBoundingClientRect();
       if (e.touches.length >= 2 && g.type === 'pinch') {
         const newScale = g.scale0 * dist(e.touches) / g.d0;
@@ -657,7 +926,35 @@ function ExpandedMap({ basePath, t, stages, userPosition, onStageClick, onClose 
     }
 
     function onTouchEnd(e) {
+      const g = stateRef.current.gesture;
       const { scale, tx, ty } = stateRef.current;
+
+      // Tap detectie voor pin plaatsen
+      if (
+        g?.type === 'pan' &&
+        e.changedTouches.length === 1 &&
+        e.touches.length === 0
+      ) {
+        const rect = el.getBoundingClientRect();
+        const touch = e.changedTouches[0];
+        const endX = touch.clientX - rect.left;
+        const endY = touch.clientY - rect.top;
+        const moveDist = Math.hypot(endX - g.x0, endY - g.y0);
+
+        if (moveDist < 12 && addModeRef.current) {
+          const ratio = 2330.58 / 1353.19;
+          const mapWidthPx = el.clientWidth;
+          const mapHeightPx = mapWidthPx / ratio;
+          const mapX = (endX - tx) / scale;
+          const mapY = (endY - ty) / scale;
+          const xPct = Math.min(98, Math.max(2, (mapX / mapWidthPx) * 100));
+          const yPct = Math.min(98, Math.max(2, (mapY / mapHeightPx) * 100));
+          addModeRef.current = false;
+          setAddMode(false);
+          onMapTapRef.current?.(xPct, yPct);
+        }
+      }
+
       if (e.touches.length === 0) {
         stateRef.current.gesture = null;
       } else if (e.touches.length === 1) {
@@ -679,6 +976,7 @@ function ExpandedMap({ basePath, t, stages, userPosition, onStageClick, onClose 
       el.removeEventListener('touchmove', onTouchMove);
       el.removeEventListener('touchend', onTouchEnd);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const { scale, tx, ty } = stateRef.current;
@@ -691,16 +989,18 @@ function ExpandedMap({ basePath, t, stages, userPosition, onStageClick, onClose 
         padding: '10px 12px 8px', flexShrink: 0,
         background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)',
         borderBottom: '1px solid rgba(255,255,255,0.08)',
+        gap: 8,
       }}>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          <button style={OVERLAY_BTN} onClick={() => { const {scale:s,tx,ty}=stateRef.current; commit(s-0.25,tx,ty); }}>−</button>
+          <button style={OVERLAY_BTN} onClick={() => { const { scale: s, tx, ty } = stateRef.current; commit(s - 0.25, tx, ty); }}>−</button>
           <button
             onClick={() => commit(1, 0, 0)}
             style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.75rem', minWidth: 36, textAlign: 'center', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 2px' }}
           >
             {Math.round(scale * 100)}%
           </button>
-          <button style={OVERLAY_BTN} onClick={() => { const {scale:s,tx,ty}=stateRef.current; commit(s+0.25,tx,ty); }}>+</button>
+          <button style={OVERLAY_BTN} onClick={() => { const { scale: s, tx, ty } = stateRef.current; commit(s + 0.25, tx, ty); }}>+</button>
+
           {userPosition && (
             <button
               onClick={enableFollow}
@@ -717,7 +1017,50 @@ function ExpandedMap({ basePath, t, stages, userPosition, onStageClick, onClose 
               </svg>
             </button>
           )}
+
+          {/* Pin-modus knop */}
+          <button
+            onClick={() => {
+              setAddMode(m => !m);
+              addModeRef.current = !addModeRef.current;
+              setSelectedPinId(null);
+            }}
+            style={{
+              ...OVERLAY_BTN,
+              background: addMode ? 'rgba(249,115,22,0.75)' : 'rgba(255,255,255,0.15)',
+              border: addMode ? '1px solid rgba(249,115,22,0.9)' : '1px solid rgba(255,255,255,0.25)',
+              gap: 0,
+            }}
+            title={addMode ? t.stopAdding : t.addPin}
+          >
+            <svg viewBox="0 0 24 24" style={{ width: 16, height: 16, stroke: 'currentColor', fill: 'none', strokeWidth: 2.5, strokeLinecap: 'round' }}>
+              {addMode ? (
+                <path d="M18 6L6 18M6 6l12 12" />
+              ) : (
+                <>
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </>
+              )}
+            </svg>
+          </button>
+
+          {/* Geselecteerde pin verwijderen */}
+          {selectedPinId !== null && (
+            <button
+              onClick={() => { onDeleteCustomMarker(selectedPinId); setSelectedPinId(null); }}
+              style={{
+                ...OVERLAY_BTN,
+                background: 'rgba(239,68,68,0.7)',
+                border: '1px solid rgba(239,68,68,0.9)',
+                fontSize: '0.7rem', width: 'auto', padding: '0 10px',
+              }}
+            >
+              {t.deletePin}
+            </button>
+          )}
         </div>
+
         <button
           onClick={onClose}
           style={{ ...OVERLAY_BTN, width: 'auto', fontSize: '0.85rem', padding: '0 14px' }}
@@ -726,20 +1069,41 @@ function ExpandedMap({ basePath, t, stages, userPosition, onStageClick, onClose 
         </button>
       </div>
 
+      {/* Add-mode hint */}
+      {addMode && (
+        <div style={{
+          textAlign: 'center',
+          padding: '6px 16px',
+          background: 'rgba(249,115,22,0.85)',
+          backdropFilter: 'blur(4px)',
+          color: 'white',
+          fontSize: '0.8rem',
+          fontWeight: 600,
+          flexShrink: 0,
+        }}>
+          {t.tapToPlace}
+        </div>
+      )}
+
       {/* Kaartgebied */}
-      <div ref={containerRef} style={{ flex: 1, overflow: 'hidden', position: 'relative', touchAction: 'none' }}>
-        {/* Schaalplaatje met markers */}
+      <div
+        ref={containerRef}
+        style={{ flex: 1, overflow: 'hidden', position: 'relative', touchAction: 'none' }}
+        onClick={() => setSelectedPinId(null)}
+      >
         <div style={{
           position: 'absolute', top: 0, left: 0, width: '100%',
           transformOrigin: '0 0',
           transform: `translate(${tx}px,${ty}px) scale(${scale})`,
         }}>
           <img
-            src={`${basePath}/kaart_festival_markers.svg`}
+            src={`${basePath}/kaart_festival_no_markers.svg`}
             alt={t.title}
             draggable={false}
             style={{ width: '100%', height: 'auto', display: 'block', userSelect: 'none', pointerEvents: 'none' }}
           />
+
+          {/* Podiummarkers */}
           {stages.map(stage => (
             <button
               key={stage.id}
@@ -748,13 +1112,48 @@ function ExpandedMap({ basePath, t, stages, userPosition, onStageClick, onClose 
                 left: `${stage.x}%`, top: `${stage.y}%`, color: stage.color,
                 transform: `translate(-50%, -50%) scale(${1 / scale})`,
               }}
-              onClick={() => onStageClick(stage)}
+              onClick={(e) => { e.stopPropagation(); onStageClick(stage); }}
             >
               <span className="stage-marker__ring" />
               <span className="stage-marker__dot" style={{ background: stage.color }} />
             </button>
           ))}
 
+          {/* Custom markers */}
+          {customMarkers.map(marker => (
+            <CustomMarkerPin
+              key={marker.id}
+              marker={marker}
+              scale={scale}
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedPinId(id => id === marker.id ? null : marker.id);
+                setAddMode(false);
+                addModeRef.current = false;
+              }}
+            />
+          ))}
+
+          {/* Geselecteerde pin highlight ring */}
+          {selectedPinId !== null && (() => {
+            const m = customMarkers.find(m => m.id === selectedPinId);
+            if (!m) return null;
+            return (
+              <div style={{
+                position: 'absolute',
+                left: `${m.x}%`,
+                top: `${m.y}%`,
+                transform: `translate(-50%, -50%) scale(${1 / scale})`,
+                width: 28, height: 28,
+                borderRadius: '50%',
+                border: '2px solid rgba(239,68,68,0.8)',
+                boxShadow: '0 0 0 3px rgba(239,68,68,0.3)',
+                pointerEvents: 'none',
+              }} />
+            );
+          })()}
+
+          {/* Gebruikerslocatie */}
           {userPosition && (() => {
             const { x, y } = gpsToMapPercent(userPosition.lat, userPosition.lng);
             return (
@@ -770,7 +1169,7 @@ function ExpandedMap({ basePath, t, stages, userPosition, onStageClick, onClose 
           })()}
         </div>
 
-        {/* Legenda */}
+        {/* Legenda afbeelding */}
         <img
           src={`${basePath}/legenda.svg`}
           alt="Legenda"
@@ -782,7 +1181,7 @@ function ExpandedMap({ basePath, t, stages, userPosition, onStageClick, onClose 
           }}
         />
 
-        {scale === 1 && (
+        {!addMode && scale === 1 && (
           <div style={{
             position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)',
             background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)',
@@ -803,16 +1202,10 @@ function ArtistRow({ artist, stageColor, onClick }) {
     <button
       onClick={onClick}
       style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        background: 'var(--bg)',
-        border: '1px solid var(--border)',
-        borderRadius: 'var(--radius-sm)',
-        padding: '12px 14px',
-        cursor: 'pointer',
-        width: '100%',
-        textAlign: 'left',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        background: 'var(--bg)', border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-sm)', padding: '12px 14px',
+        cursor: 'pointer', width: '100%', textAlign: 'left',
         WebkitTapHighlightColor: 'transparent',
       }}
     >
@@ -830,7 +1223,6 @@ function ArtistRow({ artist, stageColor, onClick }) {
 function ArtistDetail({ artist, language, t, onBack }) {
   return (
     <div style={{ padding: '8px 20px 20px' }}>
-      {/* Back button + close */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
         <button
           onClick={onBack}
@@ -843,7 +1235,6 @@ function ArtistDetail({ artist, language, t, onBack }) {
         </button>
       </div>
 
-      {/* Artist name + genre */}
       <h2 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: 4, letterSpacing: '-0.5px' }}>
         {artist.name}
       </h2>
@@ -856,7 +1247,6 @@ function ArtistDetail({ artist, language, t, onBack }) {
         </span>
       </div>
 
-      {/* YouTube embed */}
       <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, borderRadius: 'var(--radius-sm)', overflow: 'hidden', marginBottom: 16 }}>
         <iframe
           src={`https://www.youtube.com/embed/${artist.youtubeId}`}
@@ -868,7 +1258,6 @@ function ArtistDetail({ artist, language, t, onBack }) {
         />
       </div>
 
-      {/* Description */}
       <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: 1.7 }}>
         {language === 'nl' ? artist.descNl : artist.descEn}
       </p>
