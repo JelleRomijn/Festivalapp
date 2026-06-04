@@ -48,6 +48,7 @@ const TEXTS = {
     addPinMode: 'Pin plaatsen',
     deletePin: 'Verwijder pin',
     stopAdding: 'Klaar',
+    facilityLegendTitle: 'Faciliteiten',
   },
   en: {
     title: 'Festival map',
@@ -75,6 +76,7 @@ const TEXTS = {
     addPinMode: 'Place pin',
     deletePin: 'Delete pin',
     stopAdding: 'Done',
+    facilityLegendTitle: 'Facilities',
   },
 };
 
@@ -198,6 +200,48 @@ const STAGES = [
   { id: 4, name: 'Hanggar',  color: '#2E7D52', x: 90.2, y: 17.1 },
 ];
 
+const FACILITY_TYPES = {
+  wc:          { labelNl: 'Toilet',      labelEn: 'Toilet',      abbr: 'WC',    color: '#3B82F6',
+                 descNl: 'Hier vind je de toiletten.',            descEn: 'Toilets are located here.' },
+  bar:         { labelNl: 'Bar',         labelEn: 'Bar',         abbr: 'BAR',   color: '#F97316',
+                 descNl: 'Hier kun je drankjes bestellen.',       descEn: 'Order your drinks here.' },
+  food:        { labelNl: 'Eten',        labelEn: 'Food',        abbr: 'ETEN',  color: '#22C55E',
+                 descNl: 'Hier vind je eten- en drankstands.',    descEn: 'Food and drink stands are here.' },
+  ehbo:        { labelNl: 'EHBO',        labelEn: 'First Aid',   abbr: 'EHBO',  color: '#EF4444',
+                 descNl: 'EHBO-post. Hier kun je terecht bij medische vragen.', descEn: 'First aid station. Go here for medical assistance.' },
+  merchandise: { labelNl: 'Merchandise', labelEn: 'Merchandise', abbr: 'MERCH', color: '#A855F7',
+                 descNl: 'Koop hier officieel festivalmerchandise.', descEn: 'Buy official festival merchandise here.' },
+  locker:      { labelNl: 'Locker',      labelEn: 'Locker',      abbr: 'LOCK',  color: '#EAB308',
+                 descNl: 'Bewaar hier veilig je spullen in een kluisje.', descEn: 'Store your belongings safely in a locker.' },
+};
+
+const FACILITY_MARKERS = [
+  // WC / Toilet
+  { id: 'wc-1',    type: 'wc',          x: 93.1, y: 24.8 },
+  { id: 'wc-2',    type: 'wc',          x:  7.8, y: 78.6 },
+  { id: 'wc-3',    type: 'wc',          x: 48.9, y: 28.3 },
+  // Bar
+  { id: 'bar-1',   type: 'bar',         x: 81.0, y: 28.0 },
+  { id: 'bar-2',   type: 'bar',         x: 72.0, y: 28.8 },
+  { id: 'bar-3',   type: 'bar',         x: 51.4, y: 40.8 },
+  { id: 'bar-4',   type: 'bar',         x: 11.8, y: 73.7 },
+  // Eten / Food
+  { id: 'food-1',  type: 'food',        x: 83.1, y: 18.0 },
+  { id: 'food-2',  type: 'food',        x: 62.6, y: 33.1 },
+  { id: 'food-3',  type: 'food',        x: 39.2, y: 41.9 },
+  { id: 'food-4',  type: 'food',        x: 26.4, y: 67.1 },
+  // EHBO / First Aid
+  { id: 'ehbo-1',  type: 'ehbo',        x: 12.1, y: 62.8 },
+  { id: 'ehbo-2',  type: 'ehbo',        x: 35.3, y: 44.0 },
+  // Merchandise
+  { id: 'merch-1', type: 'merchandise', x: 17.4, y: 78.6 },
+  { id: 'merch-2', type: 'merchandise', x: 65.4, y: 39.6 },
+  { id: 'merch-3', type: 'merchandise', x: 31.7, y: 39.9 },
+  // Locker / Ingang
+  { id: 'lock-1',  type: 'locker',      x: 24.0, y: 82.8 },
+  { id: 'lock-2',  type: 'locker',      x: 30.4, y: 81.7 },
+];
+
 function haversineDistance(lat1, lng1, lat2, lng2) {
   const R = 6371000;
   const φ1 = (lat1 * Math.PI) / 180;
@@ -275,6 +319,38 @@ function CustomMarkerPin({ marker, scale = 1, onClick }) {
   );
 }
 
+function FacilityPin({ marker, scale = 1, onClick }) {
+  const cfg = FACILITY_TYPES[marker.type];
+  return (
+    <button
+      style={{
+        position: 'absolute',
+        left: `${marker.x}%`,
+        top: `${marker.y}%`,
+        transform: `translate(-50%, -50%) scale(${1 / scale})`,
+        transformOrigin: 'center center',
+        background: cfg.color,
+        color: 'white',
+        border: '2px solid rgba(255,255,255,0.85)',
+        borderRadius: 6,
+        padding: '3px 6px',
+        fontSize: '0.55rem',
+        fontWeight: 800,
+        letterSpacing: '0.5px',
+        whiteSpace: 'nowrap',
+        cursor: 'pointer',
+        boxShadow: '0 1px 6px rgba(0,0,0,0.45)',
+        lineHeight: 1.4,
+        zIndex: 4,
+        WebkitTapHighlightColor: 'transparent',
+      }}
+      onClick={onClick}
+    >
+      {cfg.abbr}
+    </button>
+  );
+}
+
 export default function MapPage() {
   const { language } = useApp();
   const t = TEXTS[language];
@@ -285,6 +361,7 @@ export default function MapPage() {
   const watchIdRef = useRef(null);
   const [selectedStage, setSelectedStage] = useState(null);
   const [selectedArtist, setSelectedArtist] = useState(null);
+  const [selectedFacility, setSelectedFacility] = useState(null);
   const [mapExpanded, setMapExpanded] = useState(false);
   const [artists, setArtists] = useState(ARTISTS);
 
@@ -414,13 +491,14 @@ export default function MapPage() {
   function closeSheet() {
     setSelectedArtist(null);
     setSelectedStage(null);
+    setSelectedFacility(null);
   }
 
   function goBackToStage() {
     setSelectedArtist(null);
   }
 
-  const sheetOpen = selectedStage !== null;
+  const sheetOpen = selectedStage !== null || selectedFacility !== null;
   const pinDialogOpen = pendingMapPos !== null;
 
   return (
@@ -479,12 +557,20 @@ export default function MapPage() {
               key={stage.id}
               className="stage-marker"
               style={{ left: `${stage.x}%`, top: `${stage.y}%`, color: stage.color }}
-              onClick={e => { e.stopPropagation(); setSelectedStage(stage); }}
+              onClick={e => { e.stopPropagation(); setSelectedStage(stage); setSelectedFacility(null); }}
               title={stage.name}
             >
               <span className="stage-marker__ring" />
               <span className="stage-marker__dot" style={{ background: stage.color }} />
             </button>
+          ))}
+
+          {FACILITY_MARKERS.map(marker => (
+            <FacilityPin
+              key={marker.id}
+              marker={marker}
+              onClick={e => { e.stopPropagation(); setSelectedFacility(marker); setSelectedStage(null); setSelectedArtist(null); }}
+            />
           ))}
 
           {customMarkers.map(marker => (
@@ -530,6 +616,29 @@ export default function MapPage() {
               {stage.name}
             </button>
           ))}
+        </div>
+
+        {/* Faciliteiten legenda */}
+        <div style={{ marginBottom: 14 }}>
+          <p style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: 'var(--text-muted)', marginBottom: 8 }}>
+            {t.facilityLegendTitle}
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {Object.entries(FACILITY_TYPES).map(([type, cfg]) => (
+              <button
+                key={type}
+                className="stage-legend-pill"
+                onClick={() => {
+                  const first = FACILITY_MARKERS.find(m => m.type === type);
+                  if (first) { setSelectedFacility(first); setSelectedStage(null); setSelectedArtist(null); }
+                }}
+                style={{ '--stage-color': cfg.color }}
+              >
+                <span style={{ width: 10, height: 10, borderRadius: 3, background: cfg.color, display: 'inline-block', flexShrink: 0 }} />
+                {language === 'nl' ? cfg.labelNl : cfg.labelEn}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Mijn pins legenda */}
@@ -598,12 +707,14 @@ export default function MapPage() {
             basePath={BASE_PATH}
             t={t}
             stages={STAGES}
+            facilityMarkers={FACILITY_MARKERS}
             userPosition={userPosition}
             customMarkers={customMarkers}
             openInAddMode={openMapInAddMode}
             onMapTap={handleMapTap}
             onDeleteCustomMarker={deleteCustomMarker}
-            onStageClick={stage => { setMapExpanded(false); setOpenMapInAddMode(false); setSelectedStage(stage); }}
+            onStageClick={stage => { setMapExpanded(false); setOpenMapInAddMode(false); setSelectedStage(stage); setSelectedFacility(null); }}
+            onFacilityClick={marker => { setMapExpanded(false); setOpenMapInAddMode(false); setSelectedFacility(marker); setSelectedStage(null); setSelectedArtist(null); }}
             onClose={() => { setMapExpanded(false); setOpenMapInAddMode(false); }}
           />
         )}
@@ -641,6 +752,13 @@ export default function MapPage() {
             language={language}
             t={t}
             onBack={goBackToStage}
+          />
+        ) : selectedFacility ? (
+          <FacilityDetail
+            marker={selectedFacility}
+            language={language}
+            t={t}
+            onClose={closeSheet}
           />
         ) : selectedStage ? (
           <div style={{ padding: '8px 20px 20px' }}>
@@ -801,7 +919,7 @@ const OVERLAY_BTN = {
   display: 'flex', alignItems: 'center', justifyContent: 'center',
 };
 
-function ExpandedMap({ basePath, t, stages, userPosition, customMarkers, openInAddMode, onMapTap, onDeleteCustomMarker, onStageClick, onClose }) {
+function ExpandedMap({ basePath, t, stages, facilityMarkers, userPosition, customMarkers, openInAddMode, onMapTap, onDeleteCustomMarker, onStageClick, onFacilityClick, onClose }) {
   const containerRef = useRef(null);
   const stateRef = useRef({ scale: 1, tx: 0, ty: 0, gesture: null });
   const followRef = useRef(!!userPosition);
@@ -1119,6 +1237,16 @@ function ExpandedMap({ basePath, t, stages, userPosition, customMarkers, openInA
             </button>
           ))}
 
+          {/* Faciliteitsmarkers */}
+          {facilityMarkers.map(marker => (
+            <FacilityPin
+              key={marker.id}
+              marker={marker}
+              scale={scale}
+              onClick={(e) => { e.stopPropagation(); onFacilityClick(marker); }}
+            />
+          ))}
+
           {/* Custom markers */}
           {customMarkers.map(marker => (
             <CustomMarkerPin
@@ -1193,6 +1321,45 @@ function ExpandedMap({ basePath, t, stages, userPosition, customMarkers, openInA
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+const FACILITY_ICONS = {
+  wc:          <svg viewBox="0 0 24 24" style={{ width: 32, height: 32, fill: 'currentColor' }}><path d="M5 2h4a1 1 0 0 1 1 1v4a4 4 0 0 1-8 0V3a1 1 0 0 1 1-1zm0 2v3a2 2 0 0 0 4 0V4H5zm5 12H4v4h6v-4zm0-2v8H4a2 2 0 0 1-2-2v-6h8zm8-12h2a1 1 0 0 1 1 1v7a4 4 0 0 1-8 0V3a1 1 0 0 1 1-1h2V2h2v2h-2zm-1 2v4a2 2 0 0 0 4 0V6h-4zm2 8l2 8h-2l-.5-2h-3l-.5 2h-2l2-8h4zm-1.5 4h2l-.5-2h-1l-.5 2z"/></svg>,
+  bar:         <svg viewBox="0 0 24 24" style={{ width: 32, height: 32, fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' }}><path d="M5 3l3 9m11-9l-3 9M5 3h14M10 14a4 4 0 0 0 4 0M12 14v7M9 21h6"/></svg>,
+  food:        <svg viewBox="0 0 24 24" style={{ width: 32, height: 32, fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' }}><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>,
+  ehbo:        <svg viewBox="0 0 24 24" style={{ width: 32, height: 32, fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' }}><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>,
+  merchandise: <svg viewBox="0 0 24 24" style={{ width: 32, height: 32, fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' }}><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>,
+  locker:      <svg viewBox="0 0 24 24" style={{ width: 32, height: 32, fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' }}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
+};
+
+function FacilityDetail({ marker, language, t, onClose }) {
+  const cfg = FACILITY_TYPES[marker.type];
+  const label = language === 'nl' ? cfg.labelNl : cfg.labelEn;
+  const desc  = language === 'nl' ? cfg.descNl  : cfg.descEn;
+  return (
+    <div style={{ padding: '8px 20px 20px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 48, height: 48, borderRadius: 12,
+            background: cfg.color,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: 'white', flexShrink: 0,
+          }}>
+            {FACILITY_ICONS[marker.type]}
+          </div>
+          <h2 style={{ fontSize: '1.3rem', fontWeight: 800 }}>{label}</h2>
+        </div>
+        <button
+          onClick={onClose}
+          style={{ color: 'var(--text-muted)', fontSize: '0.85rem', background: 'var(--border)', border: 'none', borderRadius: 20, padding: '4px 12px', cursor: 'pointer' }}
+        >
+          {t.close}
+        </button>
+      </div>
+      <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)', lineHeight: 1.7 }}>{desc}</p>
     </div>
   );
 }
