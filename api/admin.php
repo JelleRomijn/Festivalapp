@@ -18,7 +18,7 @@ try {
             handleSchedule($method, $id, $input);
             break;
         case 'locations':
-            handleLocations();
+            handleLocations($method, $id, $input);
             break;
         case 'festival_info':
             handleInfo($method, $id, $input);
@@ -230,20 +230,91 @@ function handleInfo(string $method, int $id, array $input): void
 }
 
 // -------------------------------------------------------
-// Locaties (alleen podia, read-only voor admin)
+// Locaties (podia en faciliteiten, volledig CRUD)
 // -------------------------------------------------------
-function handleLocations(): void
+function handleLocations(string $method, int $id, array $input): void
 {
     $db = getDb();
-    $stmt = $db->query("
-        SELECT id, name_nl, name_en, type
-        FROM locations
-        WHERE type = 'stage'
-        ORDER BY name_nl ASC
-    ");
-    $rows = $stmt->fetchAll();
-    foreach ($rows as &$r) {
-        $r['id'] = (int) $r['id'];
+
+    switch ($method) {
+        case 'GET':
+            $typeFilter = $_GET['type'] ?? null;
+            if ($typeFilter === 'stage') {
+                // Backward-compat: alleen podia voor programma-tab
+                $stmt = $db->query("
+                    SELECT id, name_nl, name_en, type, map_x, map_y, color
+                    FROM locations
+                    WHERE type = 'stage'
+                    ORDER BY name_nl ASC
+                ");
+            } else {
+                $stmt = $db->query("
+                    SELECT id, name_nl, name_en, type, map_x, map_y, color
+                    FROM locations
+                    ORDER BY type ASC, name_nl ASC
+                ");
+            }
+            $rows = $stmt->fetchAll();
+            foreach ($rows as &$r) {
+                $r['id']    = (int) $r['id'];
+                $r['map_x'] = $r['map_x'] !== null ? (float) $r['map_x'] : null;
+                $r['map_y'] = $r['map_y'] !== null ? (float) $r['map_y'] : null;
+            }
+            echo json_encode($rows, JSON_UNESCAPED_UNICODE);
+            break;
+
+        case 'POST':
+            $stmt = $db->prepare('
+                INSERT INTO locations (name_nl, name_en, type, map_x, map_y, color)
+                VALUES (:name_nl, :name_en, :type, :map_x, :map_y, :color)
+            ');
+            $stmt->execute([
+                'name_nl' => trim($input['name_nl'] ?? ''),
+                'name_en' => trim($input['name_en'] ?? ''),
+                'type'    => $input['type'] ?? 'wc',
+                'map_x'   => isset($input['map_x']) ? (float) $input['map_x'] : null,
+                'map_y'   => isset($input['map_y']) ? (float) $input['map_y'] : null,
+                'color'   => $input['color'] ?? '#3B82F6',
+            ]);
+            echo json_encode(['ok' => true, 'id' => (int) $db->lastInsertId()]);
+            break;
+
+        case 'PUT':
+            if (!$id) { http_response_code(400); echo json_encode(['error' => 'Geen id']); return; }
+            $stmt = $db->prepare('
+                UPDATE locations
+                SET name_nl=:name_nl, name_en=:name_en, type=:type,
+                    map_x=:map_x, map_y=:map_y, color=:color
+                WHERE id=:id
+            ');
+            $stmt->execute([
+                'name_nl' => trim($input['name_nl'] ?? ''),
+                'name_en' => trim($input['name_en'] ?? ''),
+                'type'    => $input['type'] ?? 'wc',
+                'map_x'   => isset($input['map_x']) ? (float) $input['map_x'] : null,
+                'map_y'   => isset($input['map_y']) ? (float) $input['map_y'] : null,
+                'color'   => $input['color'] ?? '#3B82F6',
+                'id'      => $id,
+            ]);
+            echo json_encode(['ok' => true]);
+            break;
+
+        case 'DELETE':
+            if (!$id) { http_response_code(400); echo json_encode(['error' => 'Geen id']); return; }
+            // Podia mogen niet verwijderd worden als ze in het programma zitten
+            $check = $db->prepare('SELECT COUNT(*) FROM schedule WHERE stage_id=?');
+            $check->execute([$id]);
+            if ((int) $check->fetchColumn() > 0) {
+                http_response_code(409);
+                echo json_encode(['error' => 'Podium heeft nog programmaslots']);
+                return;
+            }
+            $db->prepare('DELETE FROM locations WHERE id=?')->execute([$id]);
+            echo json_encode(['ok' => true]);
+            break;
+
+        default:
+            http_response_code(405);
+            echo json_encode(['error' => 'Methode niet toegestaan']);
     }
-    echo json_encode($rows, JSON_UNESCAPED_UNICODE);
 }

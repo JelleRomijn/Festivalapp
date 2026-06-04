@@ -193,7 +193,7 @@ const ARTISTS = [
   },
 ];
 
-const STAGES = [
+const STAGES_FALLBACK = [
   { id: 1, name: 'Ponton',   color: '#E85D4A', x: 21.3, y: 62.8 },
   { id: 2, name: 'The Lake', color: '#2E7D8B', x: 53.9, y: 45.5 },
   { id: 3, name: 'The Club', color: '#7B2D8B', x: 69.3, y: 39.1 },
@@ -215,29 +215,23 @@ const FACILITY_TYPES = {
                  descNl: 'Bewaar hier veilig je spullen in een kluisje.', descEn: 'Store your belongings safely in a locker.' },
 };
 
-const FACILITY_MARKERS = [
-  // WC / Toilet
+const FACILITY_MARKERS_FALLBACK = [
   { id: 'wc-1',    type: 'wc',          x: 93.1, y: 24.8 },
   { id: 'wc-2',    type: 'wc',          x:  7.8, y: 78.6 },
   { id: 'wc-3',    type: 'wc',          x: 48.9, y: 28.3 },
-  // Bar
   { id: 'bar-1',   type: 'bar',         x: 81.0, y: 28.0 },
   { id: 'bar-2',   type: 'bar',         x: 72.0, y: 28.8 },
   { id: 'bar-3',   type: 'bar',         x: 51.4, y: 40.8 },
   { id: 'bar-4',   type: 'bar',         x: 11.8, y: 73.7 },
-  // Eten / Food
   { id: 'food-1',  type: 'food',        x: 83.1, y: 18.0 },
   { id: 'food-2',  type: 'food',        x: 62.6, y: 33.1 },
   { id: 'food-3',  type: 'food',        x: 39.2, y: 41.9 },
   { id: 'food-4',  type: 'food',        x: 26.4, y: 67.1 },
-  // EHBO / First Aid
   { id: 'ehbo-1',  type: 'ehbo',        x: 12.1, y: 62.8 },
   { id: 'ehbo-2',  type: 'ehbo',        x: 35.3, y: 44.0 },
-  // Merchandise
   { id: 'merch-1', type: 'merchandise', x: 17.4, y: 78.6 },
   { id: 'merch-2', type: 'merchandise', x: 65.4, y: 39.6 },
   { id: 'merch-3', type: 'merchandise', x: 31.7, y: 39.9 },
-  // Locker / Ingang
   { id: 'lock-1',  type: 'locker',      x: 24.0, y: 82.8 },
   { id: 'lock-2',  type: 'locker',      x: 30.4, y: 81.7 },
 ];
@@ -364,6 +358,8 @@ export default function MapPage() {
   const [selectedFacility, setSelectedFacility] = useState(null);
   const [mapExpanded, setMapExpanded] = useState(false);
   const [artists, setArtists] = useState(ARTISTS);
+  const [stages, setStages] = useState(STAGES_FALLBACK);
+  const [facilityMarkers, setFacilityMarkers] = useState(FACILITY_MARKERS_FALLBACK);
 
   // Custom pins
   const [customMarkers, setCustomMarkers] = useState(() => {
@@ -412,12 +408,37 @@ export default function MapPage() {
     const signal = AbortSignal.timeout(8000);
     Promise.all([
       fetch(`${API_URL}/schedule.php`, { signal }).then(r => r.json()),
-      fetch(`${API_URL}/locations.php?type=stage`, { signal }).then(r => r.json()),
+      fetch(`${API_URL}/locations.php`, { signal }).then(r => r.json()),
     ])
-      .then(([scheduleData, stageData]) => {
+      .then(([scheduleData, locationData]) => {
+        const stageData = locationData.filter(l => l.type === 'stage');
+        const facilityData = locationData.filter(l => l.type !== 'stage' && l.map_x != null && l.map_y != null);
+
+        // Podia met kaartpositie
+        const apiStages = stageData
+          .filter(s => s.map_x != null && s.map_y != null)
+          .map(s => ({
+            id:    s.id,
+            name:  s.name?.nl ?? '',
+            color: s.color ?? '#E85D4A',
+            x:     s.map_x,
+            y:     s.map_y,
+          }));
+        if (apiStages.length > 0) setStages(apiStages);
+
+        // Faciliteitsmarkers
+        const apiFacilities = facilityData.map(f => ({
+          id:   `api-${f.id}`,
+          type: f.type,
+          x:    f.map_x,
+          y:    f.map_y,
+        }));
+        if (apiFacilities.length > 0) setFacilityMarkers(apiFacilities);
+
+        // Artiesten uit programma
         const apiArtists = scheduleData.map(slot => {
           const stage = stageData.find(s => s.id === slot.stage_id);
-          const stageName = stage ? (stage.name?.nl ?? stage.name_nl ?? '') : '';
+          const stageName = stage ? (stage.name?.nl ?? '') : '';
           const ytId = slot.youtube_url
             ? slot.youtube_url.replace('https://www.youtube.com/embed/', '')
             : null;
@@ -552,7 +573,7 @@ export default function MapPage() {
             loading="lazy"
           />
 
-          {STAGES.map(stage => (
+          {stages.map(stage => (
             <button
               key={stage.id}
               className="stage-marker"
@@ -565,7 +586,7 @@ export default function MapPage() {
             </button>
           ))}
 
-          {FACILITY_MARKERS.map(marker => (
+          {facilityMarkers.map(marker => (
             <FacilityPin
               key={marker.id}
               marker={marker}
@@ -605,7 +626,7 @@ export default function MapPage() {
 
         {/* Podium legenda */}
         <div className="stage-legend">
-          {STAGES.map(stage => (
+          {stages.map(stage => (
             <button
               key={stage.id}
               className="stage-legend-pill"
@@ -629,7 +650,7 @@ export default function MapPage() {
                 key={type}
                 className="stage-legend-pill"
                 onClick={() => {
-                  const first = FACILITY_MARKERS.find(m => m.type === type);
+                  const first = facilityMarkers.find(m => m.type === type);
                   if (first) { setSelectedFacility(first); setSelectedStage(null); setSelectedArtist(null); }
                 }}
                 style={{ '--stage-color': cfg.color }}
@@ -706,8 +727,8 @@ export default function MapPage() {
           <ExpandedMap
             basePath={BASE_PATH}
             t={t}
-            stages={STAGES}
-            facilityMarkers={FACILITY_MARKERS}
+            stages={stages}
+            facilityMarkers={facilityMarkers}
             userPosition={userPosition}
             customMarkers={customMarkers}
             openInAddMode={openMapInAddMode}

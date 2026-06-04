@@ -15,6 +15,23 @@ const CATEGORIES = [
 const CAT_LABEL = { headliner: 'Headliners', talent: 'Talent', dj: 'DJ', activity: 'Activiteiten' };
 const DAY_LABEL = { 1: 'Zaterdag 15 aug', 2: 'Zondag 16 aug' };
 
+const LOCATION_TYPES = [
+  { value: 'stage',        label: 'Podium',        color: '#E85D4A' },
+  { value: 'wc',           label: 'Toilet',        color: '#3B82F6' },
+  { value: 'bar',          label: 'Bar',           color: '#F97316' },
+  { value: 'food',         label: 'Eten',          color: '#22C55E' },
+  { value: 'ehbo',         label: 'EHBO',          color: '#EF4444' },
+  { value: 'merchandise',  label: 'Merchandise',   color: '#A855F7' },
+  { value: 'locker',       label: 'Locker',        color: '#EAB308' },
+  { value: 'entrance',     label: 'Ingang',        color: '#F5A623' },
+];
+
+const LOCATION_TYPE_MAP = Object.fromEntries(LOCATION_TYPES.map(t => [t.value, t]));
+
+const EMPTY_LOCATION = {
+  name_nl: '', name_en: '', type: 'wc', color: '#3B82F6', map_x: null, map_y: null,
+};
+
 const EMPTY_ARTIST = {
   name: '', category: 'headliner', genre: '',
   description_nl: '', description_en: '',
@@ -28,6 +45,7 @@ export default function AdminPage() {
   const [artists,      setArtists]      = useState([]);
   const [schedule,     setSchedule]     = useState([]);
   const [stages,       setStages]       = useState([]);
+  const [locations,    setLocations]    = useState([]);
   const [infoSections, setInfoSections] = useState([]);
   const [loading,      setLoading]      = useState(true);
   const [toast,        setToast]        = useState(null);
@@ -48,6 +66,12 @@ export default function AdminPage() {
   const [editingInfo, setEditingInfo] = useState(null);
   const [infoForm,    setInfoForm]    = useState({});
 
+  // Kaartpins
+  const [editingLocation, setEditingLocation] = useState(null);
+  const [locationForm,    setLocationForm]    = useState(EMPTY_LOCATION);
+  const [locTypeFilter,   setLocTypeFilter]   = useState('all');
+  const [pickingPos,      setPickingPos]      = useState(false);
+
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3000);
@@ -64,7 +88,9 @@ export default function AdminPage() {
       ]);
       setArtists(Array.isArray(a) ? a : []);
       setSchedule(Array.isArray(s) ? s : []);
-      setStages(Array.isArray(l) ? l : []);
+      const allLocs = Array.isArray(l) ? l : [];
+      setLocations(allLocs);
+      setStages(allLocs.filter(loc => loc.type === 'stage'));
       setInfoSections(Array.isArray(i) ? i : []);
     } catch {
       showToast('Kon data niet laden', 'error');
@@ -207,6 +233,54 @@ export default function AdminPage() {
     }
   };
 
+  // ── Kaartpins ──────────────────────────────────────────
+  const startEditLocation = (loc) => {
+    setEditingLocation(loc.id);
+    setLocationForm({ ...EMPTY_LOCATION, ...loc });
+    setPickingPos(false);
+  };
+
+  const cancelEditLocation = () => {
+    setEditingLocation(null);
+    setLocationForm(EMPTY_LOCATION);
+    setPickingPos(false);
+  };
+
+  const saveLocation = async () => {
+    if (!locationForm.name_nl.trim()) { showToast('Naam (NL) is verplicht', 'error'); return; }
+    try {
+      const isNew = editingLocation === 'new';
+      const url   = isNew
+        ? `${API}/admin.php?resource=locations`
+        : `${API}/admin.php?resource=locations&id=${editingLocation}`;
+      const res = await fetch(url, {
+        method:  isNew ? 'POST' : 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(locationForm),
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || 'Opslaan mislukt');
+      cancelEditLocation();
+      await fetchAll();
+      showToast('Pin opgeslagen');
+    } catch (e) {
+      showToast(e.message || 'Opslaan mislukt', 'error');
+    }
+  };
+
+  const deleteLocation = async (id, name) => {
+    if (!confirm(`"${name}" verwijderen?`)) return;
+    try {
+      const res  = await fetch(`${API}/admin.php?resource=locations&id=${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || 'Verwijderen mislukt');
+      await fetchAll();
+      showToast('Pin verwijderd');
+    } catch (e) {
+      showToast(e.message || 'Verwijderen mislukt', 'error');
+    }
+  };
+
   // ── Afgeleide data ─────────────────────────────────────
   const visibleArtists = catFilter === 'all'
     ? artists
@@ -237,13 +311,16 @@ export default function AdminPage() {
 
       {/* ── Tabs ── */}
       <div className={styles.tabs}>
-        <button className={tab === 'artists'  ? styles.active : ''} onClick={() => setTab('artists')}>
+        <button className={tab === 'artists'   ? styles.active : ''} onClick={() => setTab('artists')}>
           Artiesten ({artists.length})
         </button>
-        <button className={tab === 'schedule' ? styles.active : ''} onClick={() => setTab('schedule')}>
+        <button className={tab === 'schedule'  ? styles.active : ''} onClick={() => setTab('schedule')}>
           Programma ({schedule.length} slots)
         </button>
-        <button className={tab === 'info'     ? styles.active : ''} onClick={() => setTab('info')}>
+        <button className={tab === 'locations' ? styles.active : ''} onClick={() => setTab('locations')}>
+          Kaartpins ({locations.length})
+        </button>
+        <button className={tab === 'info'      ? styles.active : ''} onClick={() => setTab('info')}>
           Info pagina ({infoSections.length})
         </button>
       </div>
@@ -426,6 +503,120 @@ export default function AdminPage() {
               </table>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════
+          TAB: KAARTPINS
+      ═══════════════════════════════════════ */}
+      {tab === 'locations' && (
+        <div className={styles.section}>
+          <p className={styles.sectionHint}>
+            Beheer hier de podia en faciliteiten op de kaart. Klik op de kaart om een positie te kiezen.
+          </p>
+
+          <div className={styles.toolbar}>
+            <div className={styles.filters}>
+              <button
+                className={locTypeFilter === 'all' ? styles.filterActive : styles.filter}
+                onClick={() => setLocTypeFilter('all')}
+              >
+                Alle ({locations.length})
+              </button>
+              {LOCATION_TYPES.map(lt => {
+                const count = locations.filter(l => l.type === lt.value).length;
+                if (count === 0) return null;
+                return (
+                  <button
+                    key={lt.value}
+                    className={locTypeFilter === lt.value ? styles.filterActive : styles.filter}
+                    onClick={() => setLocTypeFilter(lt.value)}
+                  >
+                    {lt.label} ({count})
+                  </button>
+                );
+              })}
+            </div>
+            <button className={styles.addBtn} onClick={() => {
+              setEditingLocation('new');
+              setLocationForm(EMPTY_LOCATION);
+              setPickingPos(false);
+            }}>
+              + Pin toevoegen
+            </button>
+          </div>
+
+          {/* Editpaneel */}
+          {editingLocation !== null && (
+            <LocationForm
+              form={locationForm}
+              onChange={setLocationForm}
+              onSave={saveLocation}
+              onCancel={cancelEditLocation}
+              isNew={editingLocation === 'new'}
+              pickingPos={pickingPos}
+              setPickingPos={setPickingPos}
+              styles={styles}
+            />
+          )}
+
+          {/* Kaart met alle pins */}
+          <AdminMapPreview
+            locations={locations}
+            editingId={editingLocation}
+            editForm={locationForm}
+            pickingPos={pickingPos}
+            onPickPos={(x, y) => {
+              setLocationForm(f => ({ ...f, map_x: x, map_y: y }));
+              setPickingPos(false);
+            }}
+            onSelectLocation={(loc) => {
+              if (editingLocation === null) startEditLocation(loc);
+            }}
+            styles={styles}
+          />
+
+          {/* Tabel */}
+          <table className={styles.table} style={{ marginTop: 16 }}>
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Naam (NL)</th>
+                <th>Naam (EN)</th>
+                <th>Positie</th>
+                <th>Acties</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(locTypeFilter === 'all' ? locations : locations.filter(l => l.type === locTypeFilter)).map(loc => (
+                <tr key={loc.id}>
+                  <td>
+                    <span
+                      className={styles.badge}
+                      style={{ background: (LOCATION_TYPE_MAP[loc.type]?.color ?? '#888') + '22', color: LOCATION_TYPE_MAP[loc.type]?.color ?? '#888', border: `1px solid ${LOCATION_TYPE_MAP[loc.type]?.color ?? '#888'}44` }}
+                    >
+                      {LOCATION_TYPE_MAP[loc.type]?.label ?? loc.type}
+                    </span>
+                  </td>
+                  <td className={styles.artistName}>{loc.name_nl}</td>
+                  <td className={styles.muted}>{loc.name_en}</td>
+                  <td className={styles.muted}>
+                    {loc.map_x != null ? `${loc.map_x.toFixed(1)}%, ${loc.map_y.toFixed(1)}%` : '—'}
+                  </td>
+                  <td>
+                    <button className={styles.editBtn} onClick={() => startEditLocation(loc)}>
+                      Bewerken
+                    </button>
+                    {loc.type !== 'stage' && (
+                      <button className={styles.deleteBtn} onClick={() => deleteLocation(loc.id, loc.name_nl)}>
+                        Verwijder
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
@@ -678,6 +869,178 @@ function SlotForm({ form, onChange, artists, stages, onSave, onCancel, styles })
       <div>
         <button className={styles.saveBtn} onClick={onSave}>Opslaan</button>
         <button className={styles.cancelBtn} onClick={onCancel}>Annuleer</button>
+      </div>
+    </div>
+  );
+}
+
+// ── LocationForm ───────────────────────────────────────────
+
+function LocationForm({ form, onChange, onSave, onCancel, isNew, pickingPos, setPickingPos, styles }) {
+  const set = (field) => (e) => onChange(f => ({ ...f, [field]: e.target.value }));
+
+  function handleTypeChange(e) {
+    const type  = e.target.value;
+    const color = LOCATION_TYPE_MAP[type]?.color ?? '#888888';
+    onChange(f => ({ ...f, type, color }));
+  }
+
+  return (
+    <div className={styles.artistFormPanel}>
+      <h3>{isNew ? 'Nieuwe pin' : `Bewerken: ${form.name_nl}`}</h3>
+      <div className={styles.formRow} style={{ flexWrap: 'wrap', gap: 12 }}>
+        <label className={styles.formLabel} style={{ flex: '1 1 180px' }}>
+          Naam (NL) *
+          <input value={form.name_nl || ''} onChange={set('name_nl')} placeholder="bijv. Toilet 1" />
+        </label>
+        <label className={styles.formLabel} style={{ flex: '1 1 180px' }}>
+          Naam (EN)
+          <input value={form.name_en || ''} onChange={set('name_en')} placeholder="e.g. Toilet 1" />
+        </label>
+        <label className={styles.formLabel} style={{ flex: '0 0 160px' }}>
+          Type
+          <select value={form.type || 'wc'} onChange={handleTypeChange}>
+            {LOCATION_TYPES.map(lt => <option key={lt.value} value={lt.value}>{lt.label}</option>)}
+          </select>
+        </label>
+        <label className={styles.formLabel} style={{ flex: '0 0 100px' }}>
+          Kleur
+          <input type="color" value={form.color || '#3B82F6'} onChange={set('color')} style={{ height: 36, padding: 2 }} />
+        </label>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8 }}>
+        <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+          Positie op kaart:&nbsp;
+          {form.map_x != null
+            ? <strong style={{ color: 'var(--text)' }}>{form.map_x.toFixed(1)}%, {form.map_y.toFixed(1)}%</strong>
+            : <span style={{ color: '#ef4444' }}>Nog niet ingesteld</span>
+          }
+        </div>
+        <button
+          type="button"
+          className={pickingPos ? styles.filterActive : styles.filter}
+          onClick={() => setPickingPos(p => !p)}
+          style={{ fontSize: '0.8rem' }}
+        >
+          {pickingPos ? '✕ Annuleer klik' : '📍 Klik op kaart om te plaatsen'}
+        </button>
+      </div>
+
+      <div className={styles.artistFormActions} style={{ marginTop: 12 }}>
+        <button className={styles.saveBtn} onClick={onSave}>Opslaan</button>
+        <button className={styles.cancelBtn} onClick={onCancel}>Annuleer</button>
+      </div>
+    </div>
+  );
+}
+
+// ── AdminMapPreview ────────────────────────────────────────
+
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
+
+function AdminMapPreview({ locations, editingId, editForm, pickingPos, onPickPos, onSelectLocation }) {
+  const mapRef = useRef(null);
+
+  function handleMapClick(e) {
+    if (!pickingPos) return;
+    const rect = mapRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top)  / rect.height) * 100;
+    onPickPos(
+      Math.round(Math.min(98, Math.max(2, x)) * 10) / 10,
+      Math.round(Math.min(98, Math.max(2, y)) * 10) / 10,
+    );
+  }
+
+  const editingNew = editingId === 'new' && editForm?.map_x != null;
+
+  return (
+    <div style={{ marginTop: 16, marginBottom: 8 }}>
+      <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 6, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.7px' }}>
+        Kaartoverzicht {pickingPos && <span style={{ color: '#f97316' }}>— Klik op de kaart om de positie te kiezen</span>}
+      </p>
+      <div
+        ref={mapRef}
+        onClick={handleMapClick}
+        style={{
+          position: 'relative',
+          width: '100%',
+          maxWidth: 680,
+          cursor: pickingPos ? 'crosshair' : 'default',
+          border: pickingPos ? '2px solid #f97316' : '1px solid var(--border)',
+          borderRadius: 8,
+          overflow: 'hidden',
+          userSelect: 'none',
+        }}
+      >
+        <img
+          src={`${BASE_PATH}/kaart_festival_no_markers.svg`}
+          alt="Kaart"
+          draggable={false}
+          style={{ width: '100%', height: 'auto', display: 'block', pointerEvents: 'none' }}
+        />
+
+        {locations.map(loc => {
+          const isEditing = loc.id === editingId;
+          const pin = isEditing ? { ...loc, ...editForm, id: loc.id } : loc;
+          if (pin.map_x == null || pin.map_y == null) return null;
+          const color = pin.color || LOCATION_TYPE_MAP[pin.type]?.color || '#888';
+          return (
+            <button
+              key={loc.id}
+              onClick={(e) => { e.stopPropagation(); if (!pickingPos) onSelectLocation(loc); }}
+              style={{
+                position: 'absolute',
+                left: `${pin.map_x}%`,
+                top: `${pin.map_y}%`,
+                transform: 'translate(-50%, -50%)',
+                background: color,
+                color: 'white',
+                border: isEditing ? '2px solid white' : '1.5px solid rgba(255,255,255,0.7)',
+                borderRadius: 4,
+                padding: '2px 5px',
+                fontSize: '0.5rem',
+                fontWeight: 800,
+                letterSpacing: '0.3px',
+                whiteSpace: 'nowrap',
+                cursor: pickingPos ? 'crosshair' : 'pointer',
+                boxShadow: isEditing ? `0 0 0 2px ${color}` : '0 1px 3px rgba(0,0,0,0.4)',
+                zIndex: isEditing ? 10 : 4,
+                pointerEvents: pickingPos ? 'none' : 'auto',
+                lineHeight: 1.4,
+              }}
+              title={pin.name_nl}
+            >
+              {pin.name_nl}
+            </button>
+          );
+        })}
+
+        {editingNew && (
+          <div
+            style={{
+              position: 'absolute',
+              left: `${editForm.map_x}%`,
+              top: `${editForm.map_y}%`,
+              transform: 'translate(-50%, -50%)',
+              background: editForm.color || '#888',
+              color: 'white',
+              border: '2px solid white',
+              borderRadius: 4,
+              padding: '2px 5px',
+              fontSize: '0.5rem',
+              fontWeight: 800,
+              whiteSpace: 'nowrap',
+              boxShadow: `0 0 0 2px ${editForm.color || '#888'}`,
+              zIndex: 10,
+              lineHeight: 1.4,
+              pointerEvents: 'none',
+            }}
+          >
+            {editForm.name_nl || 'Nieuwe pin'}
+          </div>
+        )}
       </div>
     </div>
   );
