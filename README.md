@@ -4,6 +4,8 @@ PWA voor het HartjeU festival, Utrecht — 15 & 16 augustus 2026.
 
 Gebouwd met Next.js 14 (App Router), PHP, MySQL en next-pwa.
 
+live link https://festival.jelleromijn.com/
+
 ---
 
 ## Lokaal draaien — stappenplan
