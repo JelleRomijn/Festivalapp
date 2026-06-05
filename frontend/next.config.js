@@ -16,27 +16,41 @@ const nextConfig = {
 };
 
 module.exports = withPWA({
-  dest: 'public',           // Service Worker wordt gegenereerd in /public
-  cacheOnFrontEndNav: false,
-  aggressiveFrontEndNavCaching: false,
-  reloadOnOnline: true,     // Herlaad pagina als verbinding terugkomt
-  disable: process.env.NODE_ENV === 'development', // SW uit in development
+  dest: 'public',
+  cacheOnFrontEndNav: true,
+  aggressiveFrontEndNavCaching: true,
+  reloadOnOnline: true,
+  disable: process.env.NODE_ENV === 'development',
   workboxOptions: {
     disableDevLogs: true,
     runtimeCaching: [
+      // Admin nooit cachen
       {
         urlPattern: /\/admin(\/|$)/,
         handler: 'NetworkOnly',
       },
+      // Pagina-HTML's: cache zodat directe URL's offline werken
+      {
+        urlPattern: /\/(map|schedule|info)(\/|$)/,
+        handler: 'StaleWhileRevalidate',
+        options: {
+          cacheName: 'page-cache',
+          expiration: {
+            maxEntries: 20,
+            maxAgeSeconds: 60 * 60 * 24 * 7, // 7 dagen
+          },
+        },
+      },
+      // API: probeer netwerk, val terug op cache (24u geldig)
       {
         urlPattern: /\/api\//,
         handler: 'NetworkFirst',
         options: {
           cacheName: 'api-cache',
-          networkTimeoutSeconds: 10,
+          networkTimeoutSeconds: 6,
           expiration: {
-            maxEntries: 50,
-            maxAgeSeconds: 60 * 60, // 1 uur
+            maxEntries: 60,
+            maxAgeSeconds: 60 * 60 * 24, // 24 uur
           },
         },
       },

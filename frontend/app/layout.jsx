@@ -3,6 +3,7 @@ import Navigation from '@/components/Navigation';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import ThemeToggle from '@/components/ThemeToggle';
 import ServiceWorkerUpdater from '@/components/ServiceWorkerUpdater';
+import OfflineBanner from '@/components/OfflineBanner';
 import './globals.css';
 
 export const metadata = {
@@ -52,6 +53,7 @@ export default function RootLayout({ children }) {
       <body>
         <ServiceWorkerUpdater />
         <AppProvider>
+          <OfflineBanner />
           {/* Vaste header met logo en controls */}
           <header className="app-header">
             <div className="app-header__logo">
